@@ -205,3 +205,73 @@ makes this query efficient.
 > and make trend analysis, AI reflections, and behaviour-change tracking impossible.
 > The use of `INSERT` in `src/app/actions/carbon.ts` is **intentional by design**,
 > not an oversight.
+
+---
+
+### ADR-002 — Database Schema as Source of Truth
+
+**Status:** Accepted  
+**Date:** 2026-06-14  
+**Triggered by:** Runtime persistence failure in Carbon Entry flow
+
+---
+
+#### Context
+
+During Phase 2 manual testing, submitting a daily carbon entry produced the following
+Supabase error:
+
+```
+Could not find the 'energy_usage' column of 'daily_entries' in the schema cache
+```
+
+Investigation revealed **schema drift** between three layers:
+
+| Layer | `daily_entries` columns used |
+|---|---|
+| **Live PostgreSQL / `schema.sql`** | `transport_distance_km`, `energy_usage_kwh`, `shopping_items` |
+| **`docs/database_schema.md`** | ~~`energy_usage`~~, ~~`shopping_score`~~ — outdated names |
+| **`src/app/actions/carbon.ts`** | ~~`energy_usage`~~, ~~`shopping_score`~~ — mirrored from stale docs |
+| **`src/types/index.ts`** | ~~`energy_usage`~~, ~~`shopping_score`~~ — mirrored from stale docs |
+
+The live database schema had been updated with more descriptive column names
+(`energy_usage_kwh`, `shopping_items`, `transport_distance_km`), but the documentation
+was never updated, and subsequently generated application code inherited the outdated
+names.
+
+#### Decision
+
+1. **The live PostgreSQL schema (`supabase/schema.sql`) is the single authoritative
+   source of truth** for all column names, types, and constraints.
+
+2. **Documentation (`docs/database_schema.md`) must mirror the schema exactly.**
+   Column names, types, nullability, defaults, and constraints in the documentation
+   must match `schema.sql` at all times.
+
+3. **Application code must map explicitly to database column names.**
+   TypeScript interfaces in `src/types/index.ts` must use the exact snake_case column
+   names from the schema. Server Actions and queries must reference these names
+   directly — never inferred or assumed from documentation alone.
+
+4. **Future recommendation:** Generate Supabase database types automatically
+   (e.g., via `supabase gen types typescript`) and import them into the application.
+   This eliminates manual type definitions and makes schema drift a compile-time
+   error rather than a runtime failure.
+
+#### Corrective Actions Taken
+
+| File | Change |
+|---|---|
+| `src/app/actions/carbon.ts` | `energy_usage` → `energy_usage_kwh`, `shopping_score` → `shopping_items`, added `transport_distance_km` |
+| `src/types/index.ts` | `DailyEntry`: same renames + added `transport_distance_km`; `Insight`: added `generated_for_date`, `metadata` |
+| `docs/database_schema.md` | Prose columns and embedded SQL snippet fully aligned with `schema.sql` |
+
+#### Consequences
+
+- All future schema changes must be propagated to documentation and types in the
+  same commit/PR.
+- Contributors should run `npx tsc --noEmit` after any schema-related change to
+  verify type alignment.
+- If generated types are adopted, the manual `DailyEntry`, `EcosystemState`, and
+  `Insight` interfaces in `src/types/index.ts` should be replaced with the generated
+  versions.

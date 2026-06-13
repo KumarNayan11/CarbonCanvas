@@ -31,9 +31,10 @@ The data model centers around the user and tracks their actions, resulting footp
 *   `user_id` (UUID, Not Null)
 *   `date` (Date, Not Null)
 *   `transport_type` (Text, Nullable)
+*   `transport_distance_km` (Numeric, Nullable)
 *   `food_type` (Text, Nullable)
-*   `energy_usage` (Numeric, Nullable)
-*   `shopping_score` (Numeric, Nullable)
+*   `energy_usage_kwh` (Numeric, Nullable)
+*   `shopping_items` (Integer, Nullable)
 *   `carbon_score` (Numeric, Not Null) - *Estimated daily carbon footprint*
 *   `created_at` (Timestamptz, Default: now())
 *   `updated_at` (Timestamptz, Default: now())
@@ -52,7 +53,9 @@ The data model centers around the user and tracks their actions, resulting footp
 *   `id` (UUID, Primary Key)
 *   `user_id` (UUID, Not Null)
 *   `insight_type` (Text, Not Null) - *e.g., 'observation', 'recommendation', 'narrative'*
+*   `generated_for_date` (Date, Not Null) - *The date this insight pertains to*
 *   `content` (Text, Not Null)
+*   `metadata` (JSONB, Nullable) - *Structured context for the insight*
 *   `is_read` (Boolean, Default: false)
 *   `created_at` (Timestamptz, Default: now())
 
@@ -105,9 +108,10 @@ CREATE TABLE public.daily_entries (
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     transport_type TEXT,
+    transport_distance_km NUMERIC,
     food_type TEXT,
-    energy_usage NUMERIC,
-    shopping_score NUMERIC,
+    energy_usage_kwh NUMERIC,
+    shopping_items INTEGER,
     carbon_score NUMERIC NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
@@ -131,9 +135,12 @@ CREATE TABLE public.insights (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     insight_type TEXT NOT NULL,
+    generated_for_date DATE NOT NULL,
     content TEXT NOT NULL,
+    metadata JSONB,
     is_read BOOLEAN DEFAULT false NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    UNIQUE(user_id, generated_for_date, insight_type)
 );
 
 -- ==========================================

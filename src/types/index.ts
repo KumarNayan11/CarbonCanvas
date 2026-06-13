@@ -64,9 +64,10 @@ export interface DailyEntry {
   user_id: string
   date: string
   transport_type: string | null
+  transport_distance_km: number | null
   food_type: string | null
-  energy_usage: number | null
-  shopping_score: number | null
+  energy_usage_kwh: number | null
+  shopping_items: number | null
   carbon_score: number
   created_at: string
   updated_at: string
@@ -87,7 +88,9 @@ export interface Insight {
   id: string
   user_id: string
   insight_type: string
+  generated_for_date: string
   content: string
+  metadata: Record<string, unknown> | null
   is_read: boolean
   created_at: string
 }

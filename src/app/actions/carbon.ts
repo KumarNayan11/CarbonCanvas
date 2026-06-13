@@ -158,9 +158,10 @@ export async function submitCarbonEntry(
       user_id: user.id,
       date: today,
       transport_type: transportType,
+      transport_distance_km: transportDistanceKm,
       food_type: foodType,
-      energy_usage: energyUsageKwh,
-      shopping_score: shoppingItems,
+      energy_usage_kwh: energyUsageKwh,
+      shopping_items: shoppingItems,
       carbon_score: carbonScore,
     },
     {
