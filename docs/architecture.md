@@ -121,3 +121,87 @@ To ensure the core MVP is fully polished within 10 days, these files and feature
 * **Phase 3 (Days 8-10): Advanced Visuals & A11y Controls**
   * `src/components/ecosystem/forest-svg.tsx`, `water-svg.tsx` (Start with a unified, simpler `ecosystem-canvas.tsx` on Day 1, componentize the SVGs later if time permits).
   * `src/components/accessibility/high-contrast-toggle.tsx` (Rely on native OS-level high contrast media queries on Day 1; add explicit UI toggles only if extra time remains).
+
+---
+
+## 5. Architectural Decision Records (ADRs)
+
+### ADR-001 — `ecosystem_states` is an Append-Only Historical Snapshot Table
+
+**Status:** Accepted  
+**Date:** 2026-06-13  
+**Confirmed by:** Schema constraint inspection (`pg_constraint`)
+
+---
+
+#### Context
+
+During Phase 2 implementation, a question arose about whether `public.ecosystem_states`
+should store a single mutable "current state" row per user (updated via `UPSERT`) or
+whether it should accumulate a time-series of snapshots (appended via `INSERT`).
+
+A live schema inspection confirmed the constraints on the table:
+
+```sql
+SELECT conname, pg_get_constraintdef(oid)
+FROM pg_constraint
+WHERE conrelid = 'ecosystem_states'::regclass;
+```
+
+Results:
+- `ecosystem_states_pkey` — PRIMARY KEY on `id` ✅
+- `ecosystem_states_user_id_fkey` — FOREIGN KEY `user_id → profiles(id)` ✅
+- **No `UNIQUE(user_id)` constraint or unique index exists.**
+
+#### Decision
+
+`ecosystem_states` is an **append-only historical snapshot table**.
+
+Each time a user submits a daily carbon entry, a **new row is inserted** recording the
+ecosystem health metrics produced by that day's carbon score. Previous snapshots are
+**never overwritten or deleted**.
+
+#### Rationale
+
+The append-only design intentionally preserves the full timeline of ecosystem health,
+enabling:
+
+- **Trend analysis** — track improvement or deterioration over days/weeks/months
+- **Historical charts** — visualise how choices have affected the ecosystem over time
+- **Weekly/monthly summaries** — aggregate ecosystem health across time windows
+- **AI-generated reflections** — give Gemini the user's history, not just today's score
+- **Behaviour change tracking** — correlate lifestyle changes with ecosystem recovery
+- **Future analytics** — the raw data is already there when new features need it
+
+Discarding historical snapshots would permanently destroy this data and make these
+product features impossible to implement retroactively.
+
+#### Consequences
+
+**Retrieving the current ecosystem state** requires ordering by `created_at` descending
+and taking the first row — not a simple lookup by `user_id`:
+
+```typescript
+const { data: currentEcosystem } = await supabase
+  .from('ecosystem_states')
+  .select('*')
+  .eq('user_id', userId)
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .single()
+```
+
+`created_at` is the authoritative ordering field. The existing index
+`idx_ecosystem_states_user_created ON ecosystem_states(user_id, created_at DESC)`
+makes this query efficient.
+
+#### ⚠️ Contributor Warning — Do NOT Change This
+
+> **Do not convert `ecosystem_states` persistence to `UPSERT`.**  
+> Do not add a `UNIQUE(user_id)` constraint to the table.  
+> Do not delete or overwrite existing ecosystem snapshots.
+>
+> Doing so would **silently destroy the historical record** for every existing user
+> and make trend analysis, AI reflections, and behaviour-change tracking impossible.
+> The use of `INSERT` in `src/app/actions/carbon.ts` is **intentional by design**,
+> not an oversight.
