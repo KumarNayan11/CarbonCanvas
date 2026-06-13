@@ -18,6 +18,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
 import { calculateOverallHealth } from '@/services/ecosystem-engine'
 import { CarbonEntryForm } from '@/components/carbon/carbon-entry-form'
+import { EcosystemCanvas } from '@/components/ecosystem/ecosystem-canvas'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import type { Profile, DailyEntry, EcosystemState } from '@/types'
@@ -261,6 +262,38 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* ── Ecosystem visualization ─────────────────────── */}
+        <section aria-labelledby="ecosystem-heading">
+          <h2
+            id="ecosystem-heading"
+            className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100"
+          >
+            Your Ecosystem
+          </h2>
+
+          <Card className="border-emerald-100 dark:border-emerald-900/40 shadow-md overflow-hidden">
+            <CardContent className="p-0">
+              {latestEcosystem ? (
+                <EcosystemCanvas
+                  forestHealth={latestEcosystem.forest_health}
+                  waterQuality={latestEcosystem.water_quality}
+                  airQuality={latestEcosystem.air_quality}
+                  biodiversity={latestEcosystem.biodiversity}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/30">
+                    <Sprout className="h-7 w-7 text-emerald-500" aria-hidden="true" />
+                  </div>
+                  <p className="text-muted-foreground text-sm max-w-xs">
+                    Log your first activity to bring your ecosystem to life.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
 
         {/* ── Metrics section ─────────────────────────────── */}
         <section aria-labelledby="metrics-heading">
