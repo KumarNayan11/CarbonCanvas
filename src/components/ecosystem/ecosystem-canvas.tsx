@@ -4,6 +4,20 @@
  *
  * Server-compatible: no state, no hooks, no browser APIs, no data fetching.
  * All visual decisions are derived deterministically from the four health values.
+ *
+ * Visual layers (bottom-up paint order):
+ *  1. Sky gradient
+ *  2. Sun / clouds
+ *  3. Background mountains
+ *  4. Ground
+ *  5. River
+ *  6. Grass tufts + flora
+ *  7. Dead snags (poor forest — rendered before living trees so they sit behind)
+ *  8. Living trees
+ *  9. Dead branch accents (moderate forest)
+ * 10. Dry ground cracks (poor biodiversity)
+ * 11. Wildlife: birds + butterflies (healthy/moderate biodiversity)
+ * 12. Horizon line
  */
 
 // ============================================================
@@ -47,16 +61,16 @@ function buildDescription(
   else parts.push('heavy overcast sky')
 
   if (forestTier === 'healthy') parts.push('a dense green forest')
-  else if (forestTier === 'moderate') parts.push('a sparse woodland')
-  else parts.push('a few dying trees')
+  else if (forestTier === 'moderate') parts.push('a sparse woodland with a bare branch')
+  else parts.push('a few dying trees with broken dead branches')
 
   if (waterTier === 'healthy') parts.push('a flowing blue river')
   else if (waterTier === 'moderate') parts.push('a shallow stream')
   else parts.push('a dry riverbed')
 
-  if (biodiversityTier === 'healthy') parts.push('lush ground flora')
-  else if (biodiversityTier === 'moderate') parts.push('sparse vegetation')
-  else parts.push('barren ground')
+  if (biodiversityTier === 'healthy') parts.push('lush ground flora, soaring birds, and butterflies')
+  else if (biodiversityTier === 'moderate') parts.push('sparse vegetation with a perched bird and distant birds in flight')
+  else parts.push('barren cracked ground with no visible wildlife')
 
   return `Ecosystem scene showing ${parts.join(', ')}.`
 }
@@ -131,6 +145,13 @@ const CLOUD_FILL: Record<Tier, string> = {
   healthy: '#FFFFFF',
   moderate: '#DDE6EE',
   poor: '#B0BCC8',
+}
+
+// ── Wildlife silhouette colour — darkens with air quality ───
+const WILDLIFE_COLOR: Record<Tier, string> = {
+  healthy: '#2C3E50',
+  moderate: '#3D4F5E',
+  poor: '#4A5568', // unused — no wildlife rendered in poor state
 }
 
 // ============================================================
@@ -222,6 +243,225 @@ function Sun({ cx, cy }: { cx: number; cy: number }) {
   )
 }
 
+// ─────────────────────────────────────────────────────────────
+// NEW: Dead snag tree (poor forest degradation)
+// A bare trunk with broken skeletal branches — no foliage.
+// ─────────────────────────────────────────────────────────────
+
+interface DeadSnagProps {
+  x: number
+  groundY: number
+  height: number
+  trunkColor: string
+}
+
+/**
+ * A dead snag: a bare, slightly-leaning trunk with broken branch stubs.
+ * Conveys forest degradation without adding complexity — just a handful of
+ * `line` elements.
+ */
+function DeadSnag({ x, groundY, height, trunkColor }: DeadSnagProps) {
+  const base = groundY
+  const top  = groundY - height
+  // Slight lean: trunk top offset a few pixels right for organic feel
+  const lean = height * 0.06
+
+  return (
+    <g opacity={0.85}>
+      {/* Main trunk */}
+      <line
+        x1={x} y1={base}
+        x2={x + lean} y2={top}
+        stroke={trunkColor}
+        strokeWidth={5}
+        strokeLinecap="round"
+      />
+      {/* Broken branch stubs — left side */}
+      <line
+        x1={x + lean * 0.35} y1={top + height * 0.25}
+        x2={x + lean * 0.35 - 14} y2={top + height * 0.18}
+        stroke={trunkColor} strokeWidth={3} strokeLinecap="round"
+      />
+      {/* Broken branch stubs — right side, higher */}
+      <line
+        x1={x + lean * 0.65} y1={top + height * 0.12}
+        x2={x + lean * 0.65 + 18} y2={top + height * 0.06}
+        stroke={trunkColor} strokeWidth={2.5} strokeLinecap="round"
+      />
+      {/* Very short nub near top — feels snapped */}
+      <line
+        x1={x + lean * 0.9} y1={top + height * 0.04}
+        x2={x + lean * 0.9 - 8} y2={top - 4}
+        stroke={trunkColor} strokeWidth={2} strokeLinecap="round"
+      />
+    </g>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// NEW: Bare leaning branch (moderate forest degradation)
+// A single fallen/leaning branch lying at the base of a tree.
+// ─────────────────────────────────────────────────────────────
+
+interface LeaningBranchProps {
+  x: number
+  groundY: number
+  color: string
+}
+
+/**
+ * A single bare branch leaning against the ground — a subtle indicator of
+ * moderate forest stress. Much lighter than a full snag.
+ */
+function LeaningBranch({ x, groundY, color }: LeaningBranchProps) {
+  return (
+    <g opacity={0.7}>
+      <line
+        x1={x} y1={groundY - 22}
+        x2={x + 28} y2={groundY - 3}
+        stroke={color} strokeWidth={2.5} strokeLinecap="round"
+      />
+      {/* Small sub-branch */}
+      <line
+        x1={x + 12} y1={groundY - 14}
+        x2={x + 22} y2={groundY - 20}
+        stroke={color} strokeWidth={1.5} strokeLinecap="round"
+      />
+    </g>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// NEW: Dry cracked ground (poor biodiversity)
+// Jagged polygons on the ground surface suggesting parched earth.
+// ─────────────────────────────────────────────────────────────
+
+interface CrackProps { x: number; y: number; w: number; angle: number }
+
+/**
+ * A single dry crack drawn as a thin zigzag polyline.
+ * Rendered at the ground surface to imply parched, lifeless soil.
+ */
+function DryGroundCrack({ x, y, w, angle }: CrackProps) {
+  // Build a simple 3-segment zigzag
+  const mid = w / 2
+  const depth = 7
+  const rad = (angle * Math.PI) / 180
+  const dx = Math.cos(rad)
+  const dy = Math.sin(rad)
+  const px = (t: number) => x + dx * t
+  const py = (t: number) => y + dy * t
+
+  const pts = [
+    `${px(0)},${py(0)}`,
+    `${px(mid * 0.4) - depth * dy},${py(mid * 0.4) + depth * dx}`,
+    `${px(mid)},${py(mid)}`,
+    `${px(mid * 0.4 + mid * 0.5) + depth * dy},${py(mid * 0.4 + mid * 0.5) - depth * dx}`,
+    `${px(w)},${py(w)}`,
+  ].join(' ')
+
+  return (
+    <polyline
+      points={pts}
+      stroke="#6B5240"
+      strokeWidth={1.2}
+      fill="none"
+      opacity={0.55}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// NEW: Bird silhouette (healthy/moderate biodiversity)
+// Simple V-shaped "gull" silhouette made from two arcs/paths.
+// ─────────────────────────────────────────────────────────────
+
+interface BirdProps { x: number; y: number; scale?: number; color: string }
+
+/**
+ * A soaring bird silhouette — classic M/V shape made of two cubic bezier
+ * curves. Extremely lightweight: one `path` element per bird.
+ * Scale controls size; default is 1 (wingspan ≈ 22 px).
+ */
+function Bird({ x, y, scale = 1, color }: BirdProps) {
+  const s = scale
+  // Left wing arc: starts at center, curves up-left, ends far left
+  // Right wing mirrors it
+  const d = [
+    `M ${x},${y}`,
+    `C ${x - 5 * s},${y - 5 * s} ${x - 12 * s},${y - 3 * s} ${x - 14 * s},${y + 1 * s}`,
+    `M ${x},${y}`,
+    `C ${x + 5 * s},${y - 5 * s} ${x + 12 * s},${y - 3 * s} ${x + 14 * s},${y + 1 * s}`,
+  ].join(' ')
+
+  return (
+    <path
+      d={d}
+      stroke={color}
+      strokeWidth={1.5 * s}
+      fill="none"
+      strokeLinecap="round"
+    />
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// NEW: Butterfly silhouette (healthy biodiversity only)
+// Two pairs of teardrop-shaped wings.
+// ─────────────────────────────────────────────────────────────
+
+interface ButterflyProps { x: number; y: number; color: string }
+
+/**
+ * A butterfly silhouette from four small ellipses (upper and lower wings,
+ * both sides), plus a 1-px body line. Fits in ~16 × 18 px.
+ */
+function Butterfly({ x, y, color }: ButterflyProps) {
+  return (
+    <g opacity={0.8}>
+      {/* Upper wings */}
+      <ellipse cx={x - 7} cy={y - 4} rx={7} ry={5} fill={color} transform={`rotate(-25,${x - 7},${y - 4})`} />
+      <ellipse cx={x + 7} cy={y - 4} rx={7} ry={5} fill={color} transform={`rotate(25,${x + 7},${y - 4})`} />
+      {/* Lower wings (slightly smaller) */}
+      <ellipse cx={x - 6} cy={y + 3} rx={5} ry={3.5} fill={color} transform={`rotate(15,${x - 6},${y + 3})`} />
+      <ellipse cx={x + 6} cy={y + 3} rx={5} ry={3.5} fill={color} transform={`rotate(-15,${x + 6},${y + 3})`} />
+      {/* Body */}
+      <line x1={x} y1={y - 7} x2={x} y2={y + 6} stroke={color} strokeWidth={1.2} strokeLinecap="round" />
+    </g>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// NEW: Perched bird (moderate biodiversity — single bird on branch)
+// Tiny body + head circle + tail line; sits on a tree branch.
+// ─────────────────────────────────────────────────────────────
+
+interface PerchedBirdProps { x: number; y: number; color: string }
+
+/**
+ * A tiny perched bird silhouette: round head, oval body, short tail spike.
+ * Fits in ~12 × 10 px — barely noticeable but charming at a glance.
+ */
+function PerchedBird({ x, y, color }: PerchedBirdProps) {
+  return (
+    <g opacity={0.75}>
+      {/* Body */}
+      <ellipse cx={x} cy={y} rx={5} ry={3.5} fill={color} />
+      {/* Head */}
+      <circle cx={x + 5} cy={y - 3} r={3} fill={color} />
+      {/* Tail */}
+      <line x1={x - 4} y1={y} x2={x - 9} y2={y + 3} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      {/* Tiny beak */}
+      <line x1={x + 8} y1={y - 3} x2={x + 11} y2={y - 4} stroke={color} strokeWidth={1} strokeLinecap="round" />
+      {/* Feet */}
+      <line x1={x - 1} y1={y + 3} x2={x - 1} y2={y + 6} stroke={color} strokeWidth={1} strokeLinecap="round" />
+      <line x1={x + 2} y1={y + 3} x2={x + 2} y2={y + 6} stroke={color} strokeWidth={1} strokeLinecap="round" />
+    </g>
+  )
+}
+
 // ============================================================
 // Per-tier scene data tables
 // ============================================================
@@ -295,6 +535,63 @@ const FLORA_MODERATE: FloraDot[] = [
   { x: 718, y: 258, r: 3, color: '#B09040' },
 ]
 
+// ── NEW: Dead snag positions (poor forest tier) ──────────────
+interface SnagDef { x: number; h: number }
+const DEAD_SNAGS: SnagDef[] = [
+  { x: 148, h: 48 },
+  { x: 490, h: 42 },
+  { x: 740, h: 52 },
+]
+
+// ── NEW: Dry ground crack definitions (poor biodiversity) ────
+const DRY_CRACKS: CrackProps[] = [
+  { x: 35,  y: 262, w: 30, angle: 8  },
+  { x: 120, y: 270, w: 24, angle: -5 },
+  { x: 230, y: 265, w: 28, angle: 12 },
+  { x: 430, y: 268, w: 22, angle: -8 },
+  { x: 530, y: 263, w: 26, angle: 6  },
+  { x: 680, y: 271, w: 20, angle: -4 },
+  { x: 760, y: 266, w: 24, angle: 10 },
+]
+
+// ── NEW: Leaning branch positions (moderate forest tier) ─────
+const LEANING_BRANCHES: Array<{ x: number; y: number }> = [
+  { x: 130, y: GROUND_Y },
+  { x: 610, y: GROUND_Y },
+]
+
+// ── NEW: Wildlife positions (biodiversity-driven) ────────────
+
+// Soaring birds — V formation in sky (healthy biodiversity)
+interface BirdDef { x: number; y: number; scale: number }
+const SOARING_BIRDS_HEALTHY: BirdDef[] = [
+  { x: 210, y: 90, scale: 1.1 },
+  { x: 232, y: 82, scale: 0.9 },
+  { x: 252, y: 94, scale: 0.85 },
+  // Second loose cluster right side
+  { x: 520, y: 75, scale: 1.0 },
+  { x: 540, y: 86, scale: 0.8 },
+]
+
+// Distant birds — smaller, higher (moderate biodiversity)
+const DISTANT_BIRDS_MODERATE: BirdDef[] = [
+  { x: 280, y: 100, scale: 0.7 },
+  { x: 295, y: 92,  scale: 0.6 },
+  { x: 470, y: 110, scale: 0.65 },
+]
+
+// Butterflies near the ground flora (healthy biodiversity)
+interface ButterflyDef { x: number; y: number; color: string }
+const BUTTERFLIES_HEALTHY: ButterflyDef[] = [
+  { x: 75,  y: 248, color: '#F97316' },  // orange
+  { x: 170, y: 243, color: '#EC4899' },  // pink
+  { x: 510, y: 246, color: '#F59E0B' },  // amber
+  { x: 620, y: 244, color: '#8B5CF6' },  // violet
+]
+
+// Perched bird position (moderate biodiversity — sits on tree)
+const PERCHED_BIRD_MODERATE = { x: 178 + 10, y: GROUND_Y - 88 - 4 }  // top of moderate tree[1]
+
 // ============================================================
 // Main component
 // ============================================================
@@ -310,25 +607,25 @@ export function EcosystemCanvas({
   biodiversity,
 }: EcosystemCanvasProps) {
   // Classify each metric into a visual tier
-  const airTier = tier(airQuality)
-  const forestTier = tier(forestHealth)
-  const waterTier = tier(waterQuality)
-  const bioDivTier = tier(biodiversity)
+  const airTier      = tier(airQuality)
+  const forestTier   = tier(forestHealth)
+  const waterTier    = tier(waterQuality)
+  const bioDivTier   = tier(biodiversity)
 
   // Resolve per-tier visuals
-  const skyTop = SKY_TOP[airTier]
-  const skyBottom = SKY_BOTTOM[airTier]
-  const groundFill = GROUND_FILL[bioDivTier]
+  const skyTop         = SKY_TOP[airTier]
+  const skyBottom      = SKY_BOTTOM[airTier]
+  const groundFill     = GROUND_FILL[bioDivTier]
   const groundHighlight = GROUND_HIGHLIGHT[bioDivTier]
-  const foliageFill = FOLIAGE_FILL[forestTier]
-  const foliageMid = FOLIAGE_MID[forestTier]
-  const trunkFill = TRUNK_FILL[forestTier]
-  const riverFill = RIVER_FILL[waterTier]
+  const foliageFill    = FOLIAGE_FILL[forestTier]
+  const foliageMid     = FOLIAGE_MID[forestTier]
+  const trunkFill      = TRUNK_FILL[forestTier]
+  const riverFill      = RIVER_FILL[waterTier]
   const riverHighlight = RIVER_HIGHLIGHT[waterTier]
-  const cloudFill = CLOUD_FILL[airTier]
-  const trees = TREE_SETS[forestTier]
-  const riverPath = RIVER_PATHS[waterTier]
-  const grassTufts = bioDivTier === 'healthy'
+  const cloudFill      = CLOUD_FILL[airTier]
+  const trees          = TREE_SETS[forestTier]
+  const riverPath      = RIVER_PATHS[waterTier]
+  const grassTufts     = bioDivTier === 'healthy'
     ? GRASS_TUFTS_HEALTHY
     : bioDivTier === 'moderate'
       ? GRASS_TUFTS_MODERATE
@@ -339,7 +636,9 @@ export function EcosystemCanvas({
       ? FLORA_MODERATE
       : []
 
-  // Accessibility description
+  const wildlifeColor  = WILDLIFE_COLOR[airTier]
+
+  // Accessibility description (now includes wildlife + degradation)
   const ariaLabel = buildDescription(airTier, forestTier, waterTier, bioDivTier)
 
   return (
@@ -360,6 +659,7 @@ export function EcosystemCanvas({
        */}
       <title id="ec-title">Ecosystem visualization</title>
       <desc id="ec-desc">{ariaLabel}</desc>
+
       {/* ── Gradient definitions ─────────────────────────── */}
       <defs>
         <linearGradient id="ec-sky" x1="0" y1="0" x2="0" y2="1">
@@ -403,6 +703,16 @@ export function EcosystemCanvas({
           <Cloud cx={760} cy={60} scale={0.78} fill={cloudFill} />
         </>
       )}
+
+      {/* ── NEW: Soaring birds (healthy biodiversity) ────── */}
+      {bioDivTier === 'healthy' && SOARING_BIRDS_HEALTHY.map((b, i) => (
+        <Bird key={`bird-fly-${i}`} x={b.x} y={b.y} scale={b.scale} color={wildlifeColor} />
+      ))}
+
+      {/* ── NEW: Distant birds (moderate biodiversity) ───── */}
+      {bioDivTier === 'moderate' && DISTANT_BIRDS_MODERATE.map((b, i) => (
+        <Bird key={`bird-dist-${i}`} x={b.x} y={b.y} scale={b.scale} color={wildlifeColor} />
+      ))}
 
       {/* ── Background mountains (depth) ────────────────── */}
       {/* Far peak — left */}
@@ -466,6 +776,17 @@ export function EcosystemCanvas({
         <circle key={`flora-${i}`} cx={f.x} cy={f.y} r={f.r} fill={f.color} opacity={0.9} />
       ))}
 
+      {/* ── NEW: Dead snags (poor forest) — rendered behind living trees */}
+      {forestTier === 'poor' && DEAD_SNAGS.map((s, i) => (
+        <DeadSnag
+          key={`snag-${i}`}
+          x={s.x}
+          groundY={GROUND_Y}
+          height={s.h}
+          trunkColor="#7A6450"
+        />
+      ))}
+
       {/* ── Trees ───────────────────────────────────────── */}
       {trees.map((t, i) => (
         <PineTree
@@ -479,6 +800,30 @@ export function EcosystemCanvas({
           midFill={foliageMid}
           trunkFill={trunkFill}
         />
+      ))}
+
+      {/* ── NEW: Leaning bare branches (moderate forest) ─── */}
+      {forestTier === 'moderate' && LEANING_BRANCHES.map((b, i) => (
+        <LeaningBranch key={`branch-${i}`} x={b.x} groundY={b.y} color="#7A5A38" />
+      ))}
+
+      {/* ── NEW: Perched bird on tree (moderate biodiversity) */}
+      {bioDivTier === 'moderate' && (
+        <PerchedBird
+          x={PERCHED_BIRD_MODERATE.x}
+          y={PERCHED_BIRD_MODERATE.y}
+          color={wildlifeColor}
+        />
+      )}
+
+      {/* ── NEW: Butterflies near flora (healthy biodiversity) */}
+      {bioDivTier === 'healthy' && BUTTERFLIES_HEALTHY.map((b, i) => (
+        <Butterfly key={`butterfly-${i}`} x={b.x} y={b.y} color={b.color} />
+      ))}
+
+      {/* ── NEW: Dry ground cracks (poor biodiversity) ───── */}
+      {bioDivTier === 'poor' && DRY_CRACKS.map((c, i) => (
+        <DryGroundCrack key={`crack-${i}`} {...c} />
       ))}
 
       {/* ── Horizon line (subtle depth separator) ───────── */}
