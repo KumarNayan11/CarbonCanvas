@@ -17,7 +17,9 @@ import {
 import { createServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
 import { calculateOverallHealth } from '@/services/ecosystem-engine'
+import { calculateStreaks } from '@/services/streak-calculator'
 import { CarbonEntryForm } from '@/components/carbon/carbon-entry-form'
+import { StreakCard } from '@/components/carbon/streak-card'
 import { EcosystemCanvas } from '@/components/ecosystem/ecosystem-canvas'
 import { EcosystemStatusBadges } from '@/components/ecosystem/ecosystem-status-badges'
 import { EcosystemReflectionPanel } from '@/components/ecosystem/ecosystem-reflection-panel'
@@ -157,7 +159,7 @@ export default async function DashboardPage() {
   // ----------------------------------------------------------
   // 2. Parallel data fetching
   // ----------------------------------------------------------
-  const [profileResult, latestEntryResult, latestEcosystemResult] = await Promise.all([
+  const [profileResult, latestEntryResult, latestEcosystemResult, allEntryDatesResult] = await Promise.all([
     supabase
       .from('profiles')
       .select('*')
@@ -182,11 +184,21 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle<EcosystemState>(),
+
+    // All entry dates — lightweight select for streak calculation.
+    // We only need the `date` column so the payload is minimal.
+    supabase
+      .from('daily_entries')
+      .select('date')
+      .eq('user_id', user.id)
+      .order('date', { ascending: true }),
   ])
 
   const profile = profileResult.data
   const latestEntry = latestEntryResult.data   // null when no entries yet
   const latestEcosystem = latestEcosystemResult.data  // null when no snapshots yet
+  // Extract date strings; fall back to [] on error (e.g. RLS policy change).
+  const entryDates: string[] = (allEntryDatesResult.data ?? []).map((r) => r.date as string)
 
   // ----------------------------------------------------------
   // 3. Derived display values
@@ -211,6 +223,9 @@ export default async function DashboardPage() {
         biodiversity: latestEcosystem.biodiversity,
       })
     : null
+
+  // Compute streaks from the full entry date history.
+  const streaks = calculateStreaks(entryDates)
 
   const hasData = latestEntry !== null
 
@@ -389,6 +404,15 @@ export default async function DashboardPage() {
           >
             Today&apos;s snapshot
           </h2>
+
+          {/* Streak card — spans full row at top of metrics grid */}
+          <div className="mb-4">
+            <StreakCard
+              currentStreak={streaks.currentStreak}
+              longestStreak={streaks.longestStreak}
+              hasEntries={entryDates.length > 0}
+            />
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
