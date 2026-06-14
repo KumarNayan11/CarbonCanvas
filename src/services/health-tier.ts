@@ -163,7 +163,18 @@ export function getHealthTier(value: number): HealthTierLabel {
  */
 export function getHealthTierStyle(value: number): HealthTierStyle {
   const label = getHealthTier(value)
-  // Safe cast — TIER_DEFINITIONS covers every possible label.
+  return getHealthTierStyleByLabel(label)
+}
+
+/**
+ * Returns the full {@link HealthTierStyle} token set for a given tier label.
+ * Useful when the tier label is already known (e.g., from reflection logic)
+ * and the raw numeric value is not available.
+ *
+ * @param label - The {@link HealthTierLabel} to look up.
+ * @returns {@link HealthTierStyle} tokens.
+ */
+export function getHealthTierStyleByLabel(label: HealthTierLabel): HealthTierStyle {
   return TIER_DEFINITIONS.find((t) => t.label === label)!.style
 }
 

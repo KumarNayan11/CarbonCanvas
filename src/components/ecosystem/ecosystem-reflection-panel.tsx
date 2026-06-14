@@ -9,7 +9,7 @@
 
 import { TreePine, Droplets, Wind, Sprout, Sparkles } from 'lucide-react'
 import { generateEcosystemReflection } from '@/services/ecosystem-reflection'
-import { getHealthTierStyle } from '@/services/health-tier'
+import { getHealthTierStyle, getHealthTierStyleByLabel } from '@/services/health-tier'
 import type { ReflectionLine, EcosystemReflection } from '@/services/ecosystem-reflection'
 
 // ============================================================
@@ -98,14 +98,7 @@ interface ReflectionLineRowProps {
  */
 function ReflectionLineRow({ line }: ReflectionLineRowProps) {
   const meta = DIMENSION_META[line.dimension]
-  const tierStyle = getHealthTierStyle(
-    // We don't have the raw value here — use the tier dot colour directly
-    // by resolving via the style lookup for the tier name.
-    line.tier === 'Flourishing' ? 90
-    : line.tier === 'Healthy'   ? 65
-    : line.tier === 'Recovering'? 35
-    : 10,
-  )
+  const tierStyle = getHealthTierStyleByLabel(line.tier)
   const { Icon, label } = meta
 
   return (
