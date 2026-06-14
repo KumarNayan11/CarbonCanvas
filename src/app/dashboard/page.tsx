@@ -19,6 +19,7 @@ import { signOut } from '@/app/actions/auth'
 import { calculateOverallHealth } from '@/services/ecosystem-engine'
 import { CarbonEntryForm } from '@/components/carbon/carbon-entry-form'
 import { EcosystemCanvas } from '@/components/ecosystem/ecosystem-canvas'
+import { EcosystemStatusBadges } from '@/components/ecosystem/ecosystem-status-badges'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import type { Profile, DailyEntry, EcosystemState } from '@/types'
@@ -289,12 +290,27 @@ export default async function DashboardPage() {
           <Card className="border-emerald-100 dark:border-emerald-900/40 shadow-md overflow-hidden">
             <CardContent className="p-0">
               {latestEcosystem ? (
-                <EcosystemCanvas
-                  forestHealth={latestEcosystem.forest_health}
-                  waterQuality={latestEcosystem.water_quality}
-                  airQuality={latestEcosystem.air_quality}
-                  biodiversity={latestEcosystem.biodiversity}
-                />
+                <>
+                  <EcosystemCanvas
+                    forestHealth={latestEcosystem.forest_health}
+                    waterQuality={latestEcosystem.water_quality}
+                    airQuality={latestEcosystem.air_quality}
+                    biodiversity={latestEcosystem.biodiversity}
+                  />
+                  {/*
+                   * Status badges sit directly below the canvas, inside the same
+                   * Card so they read as one cohesive ecosystem block.
+                   * The section's aria-live="polite" (set on the parent <section>)
+                   * means screen readers will re-announce these badges after each
+                   * data update without interrupting the user.
+                   */}
+                  <EcosystemStatusBadges
+                    forestHealth={latestEcosystem.forest_health}
+                    waterQuality={latestEcosystem.water_quality}
+                    airQuality={latestEcosystem.air_quality}
+                    biodiversity={latestEcosystem.biodiversity}
+                  />
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/30">
