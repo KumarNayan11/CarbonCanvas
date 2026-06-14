@@ -23,6 +23,7 @@ import { EcosystemStatusBadges } from '@/components/ecosystem/ecosystem-status-b
 import { EcosystemReflectionPanel } from '@/components/ecosystem/ecosystem-reflection-panel'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import type { Profile, DailyEntry, EcosystemState } from '@/types'
 
 export const metadata: Metadata = {
@@ -43,10 +44,30 @@ interface MetricCardProps {
   empty?: boolean
   /** Optional colour accent class applied to the icon wrapper */
   accentClass?: string
+  /**
+   * When provided, renders a Progress bar below the value.
+   * Must be a number in [0, 100]. Omit for metrics not on a /100 scale
+   * (e.g. Carbon score in kg CO₂e).
+   */
+  progressValue?: number
+  /**
+   * Tailwind class(es) that override the progress indicator colour.
+   * Uses the `[&_[data-slot=progress-indicator]]:` arbitrary variant so we
+   * can colour each bar independently without touching the shared primitive.
+   *
+   * @example "[&_[data-slot=progress-indicator]]:bg-emerald-500"
+   */
+  progressClass?: string
 }
 
 /** A single stat card in the metrics grid. */
-function MetricCard({ label, value, unit, icon, empty, accentClass }: MetricCardProps) {
+function MetricCard({ label, value, unit, icon, empty, accentClass, progressValue, progressClass }: MetricCardProps) {
+  // Clamp progressValue to [0, 100] so malformed data never breaks the bar.
+  const clampedProgress =
+    progressValue !== undefined
+      ? Math.min(100, Math.max(0, Math.round(progressValue)))
+      : undefined
+
   return (
     <Card className="border-emerald-100 dark:border-emerald-900/40 shadow-md hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="pb-2">
@@ -62,16 +83,42 @@ function MetricCard({ label, value, unit, icon, empty, accentClass }: MetricCard
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         {empty ? (
           <p className="text-sm text-muted-foreground italic">Log your first activity</p>
         ) : (
-          <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-            {value}
-            {unit && (
-              <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span>
+          <>
+            {/* Numeric value */}
+            <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+              {value}
+              {unit && (
+                <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span>
+              )}
+            </p>
+
+            {/* Progress bar — only shown for /100 metrics */}
+            {clampedProgress !== undefined && (
+              <div className="space-y-1">
+                <Progress
+                  value={clampedProgress}
+                  className={[
+                    'h-1.5',
+                    progressClass,
+                  ].filter(Boolean).join(' ')}
+                  /*
+                   * WCAG 2.1 SC 4.1.2 — Name, Role, Value (Level A)
+                   * Radix ProgressPrimitive.Root already sets role="progressbar",
+                   * aria-valuemin, aria-valuemax, and aria-valuenow internally.
+                   * We add aria-label so the bar has a meaningful accessible name
+                   * independent of surrounding text.
+                   */
+                  aria-label={`${label}: ${clampedProgress} out of 100`}
+                />
+                {/* Screen-reader-only percentage for extra context */}
+                <p className="sr-only">{clampedProgress}% complete</p>
+              </div>
             )}
-          </p>
+          </>
         )}
       </CardContent>
     </Card>
@@ -363,6 +410,8 @@ export default async function DashboardPage() {
               empty={!latestEcosystem}
               accentClass="bg-emerald-100 dark:bg-emerald-900/30"
               icon={<Activity className="h-4 w-4 text-emerald-600" />}
+              progressValue={overallHealth ?? 0}
+              progressClass="[&_[data-slot=progress-indicator]]:bg-emerald-500"
             />
 
             {/* Forest Health */}
@@ -373,6 +422,8 @@ export default async function DashboardPage() {
               empty={!latestEcosystem}
               accentClass="bg-green-100 dark:bg-green-900/30"
               icon={<TreePine className="h-4 w-4 text-green-600" />}
+              progressValue={latestEcosystem?.forest_health ?? 0}
+              progressClass="[&_[data-slot=progress-indicator]]:bg-green-500"
             />
 
             {/* Water Quality */}
@@ -383,6 +434,8 @@ export default async function DashboardPage() {
               empty={!latestEcosystem}
               accentClass="bg-blue-100 dark:bg-blue-900/30"
               icon={<Droplets className="h-4 w-4 text-blue-500" />}
+              progressValue={latestEcosystem?.water_quality ?? 0}
+              progressClass="[&_[data-slot=progress-indicator]]:bg-blue-500"
             />
 
             {/* Air Quality */}
@@ -393,6 +446,8 @@ export default async function DashboardPage() {
               empty={!latestEcosystem}
               accentClass="bg-sky-100 dark:bg-sky-900/30"
               icon={<Wind className="h-4 w-4 text-sky-500" />}
+              progressValue={latestEcosystem?.air_quality ?? 0}
+              progressClass="[&_[data-slot=progress-indicator]]:bg-sky-500"
             />
 
             {/* Biodiversity */}
@@ -403,6 +458,8 @@ export default async function DashboardPage() {
               empty={!latestEcosystem}
               accentClass="bg-teal-100 dark:bg-teal-900/30"
               icon={<Sprout className="h-4 w-4 text-teal-600" />}
+              progressValue={latestEcosystem?.biodiversity ?? 0}
+              progressClass="[&_[data-slot=progress-indicator]]:bg-teal-500"
             />
 
           </div>
