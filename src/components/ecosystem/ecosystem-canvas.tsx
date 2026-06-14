@@ -347,12 +347,19 @@ export function EcosystemCanvas({
       viewBox={`0 0 ${W} ${H}`}
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label={ariaLabel}
+      aria-labelledby="ec-title"
+      aria-describedby="ec-desc"
       className="w-full h-auto rounded-xl overflow-hidden"
       style={{ display: 'block' }}
     >
-      <title>Ecosystem visualization</title>
-
+      {/*
+       * WCAG 2.1 SC 1.1.1 — Non-text Content (Level A)
+       * SVG images must provide a text alternative. We use both <title> (short)
+       * and <desc> (detailed prose) and link them via aria-labelledby /
+       * aria-describedby so assistive technology can present either or both.
+       */}
+      <title id="ec-title">Ecosystem visualization</title>
+      <desc id="ec-desc">{ariaLabel}</desc>
       {/* ── Gradient definitions ─────────────────────────── */}
       <defs>
         <linearGradient id="ec-sky" x1="0" y1="0" x2="0" y2="1">

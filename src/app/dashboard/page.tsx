@@ -172,8 +172,12 @@ export default async function DashboardPage() {
       <header className="border-b border-emerald-100 dark:border-emerald-900/30 bg-white/70 dark:bg-black/40 backdrop-blur-md sticky top-0 z-10">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600">
+            {/* Site identity — not an interactive nav element, so no <nav> wrapper needed */}
+            <div className="flex items-center gap-2.5" role="banner">
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600"
+                aria-hidden="true"
+              >
                 <Leaf className="h-4 w-4 text-white" aria-hidden="true" />
               </div>
               <span className="text-lg font-bold text-emerald-800 dark:text-emerald-300">
@@ -181,17 +185,21 @@ export default async function DashboardPage() {
               </span>
             </div>
 
-            <form action={signOut}>
-              <Button
-                type="submit"
-                variant="outline"
-                size="sm"
-                className="gap-2 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-900/20 transition-all"
-              >
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                Sign out
-              </Button>
-            </form>
+            {/* Sign-out action — wrapped in a <nav> so it appears in landmark navigation */}
+            <nav aria-label="Account actions">
+              <form action={signOut}>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-900/20 transition-all"
+                  aria-label="Sign out of CarbonCanvas"
+                >
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  Sign out
+                </Button>
+              </form>
+            </nav>
           </div>
         </div>
       </header>
@@ -228,13 +236,19 @@ export default async function DashboardPage() {
               <CardDescription>Account details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Avatar */}
+              {/* Avatar — decorative initial; name is announced by the adjacent <p> */}
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-lg font-bold shadow-md shrink-0">
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-lg font-bold shadow-md shrink-0"
+                  aria-hidden="true"
+                >
                   {displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                  <p
+                    className="font-semibold text-gray-900 dark:text-gray-100 truncate"
+                    aria-label={`Logged in as ${displayName}`}
+                  >
                     {displayName}
                   </p>
                   <p className="text-sm text-muted-foreground">CarbonCanvas Member</p>
@@ -296,7 +310,12 @@ export default async function DashboardPage() {
         </section>
 
         {/* ── Metrics section ─────────────────────────────── */}
-        <section aria-labelledby="metrics-heading">
+        {/*
+         * aria-live="polite" ensures screen readers announce metric updates
+         * after a successful form submission without interrupting the user.
+         * WCAG 2.1 SC 4.1.3 — Status Messages (Level AA)
+         */}
+        <section aria-labelledby="metrics-heading" aria-live="polite" aria-atomic="false">
           <h2
             id="metrics-heading"
             className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100"

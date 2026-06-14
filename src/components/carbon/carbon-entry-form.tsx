@@ -68,11 +68,24 @@ export function CarbonEntryForm() {
       </CardHeader>
 
       <CardContent>
-        <form action={formAction} className="space-y-6" noValidate>
+        <form
+          action={formAction}
+          className="space-y-6"
+          noValidate
+          aria-label="Log today's carbon activity"
+        >
 
           {/* ── Success banner ────────────────────────────── */}
           {state?.success && (
-            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+            /*
+             * role="status" (implied by aria-live="polite") is correct here:
+             * the message is informational and does not interrupt the user.
+             * WCAG 2.1 SC 4.1.3 — Status Messages (Level AA)
+             */
+            <Alert
+              role="status"
+              className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+            >
               <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
               <AlertDescription className="text-emerald-800 dark:text-emerald-300">
                 {state.message}

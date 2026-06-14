@@ -97,7 +97,16 @@ export default function HomePage() {
         </section>
 
         {/* Features */}
-        <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-24">
+        {/*
+         * WCAG 2.1 SC 1.3.1 — Info and Relationships (Level A)
+         * A section must have an accessible name to be surfaced as a
+         * meaningful landmark. We add a visually-hidden h2 so screen reader
+         * users can navigate directly to "Key features" via landmark menus.
+         * Feature card headings are demoted to h3 to maintain a correct
+         * document outline (h1 > h2 > h3).
+         */}
+        <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-24" aria-labelledby="features-heading">
+          <h2 id="features-heading" className="sr-only">Key features</h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
               <div
@@ -110,9 +119,9 @@ export default function HomePage() {
                     aria-hidden="true"
                   />
                 </div>
-                <h2 className="mb-2 font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="mb-2 font-semibold text-gray-900 dark:text-gray-100">
                   {feature.title}
-                </h2>
+                </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
               </div>
             ))}
@@ -120,7 +129,11 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-emerald-100 dark:border-emerald-900/30 py-6 text-center text-sm text-muted-foreground/60">
+      <footer
+        className="border-t border-emerald-100 dark:border-emerald-900/30 py-6 text-center text-sm text-muted-foreground/60"
+        role="contentinfo"
+        aria-label="Site footer"
+      >
         © {new Date().getFullYear()} CarbonCanvas. Built for PromptWars Challenge 3.
       </footer>
     </div>

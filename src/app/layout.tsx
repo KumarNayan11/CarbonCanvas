@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
+import { SkipToContent } from '@/components/accessibility/skip-to-content'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,14 +33,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      {/* Skip-to-content for accessibility */}
       <body className="min-h-full flex flex-col">
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-emerald-600 focus:px-4 focus:py-2 focus:text-white focus:outline-none"
-        >
-          Skip to main content
-        </a>
+        {/* Skip-to-content for keyboard / screen-reader accessibility (WCAG 2.4.1) */}
+        <SkipToContent />
         {children}
       </body>
     </html>
