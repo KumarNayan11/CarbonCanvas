@@ -13,6 +13,7 @@ import {
   Sprout,
   Activity,
   Flame,
+  ArrowRight,
 } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
@@ -60,10 +61,15 @@ interface MetricCardProps {
    * @example "[&_[data-slot=progress-indicator]]:bg-emerald-500"
    */
   progressClass?: string
+  /**
+   * Short hint shown in the empty state in place of the value.
+   * Should be a single phrase telling the user what will appear here.
+   */
+  emptyHint?: string
 }
 
 /** A single stat card in the metrics grid. */
-function MetricCard({ label, value, unit, icon, empty, accentClass, progressValue, progressClass }: MetricCardProps) {
+function MetricCard({ label, value, unit, icon, empty, accentClass, progressValue, progressClass, emptyHint }: MetricCardProps) {
   // Clamp progressValue to [0, 100] so malformed data never breaks the bar.
   const clampedProgress =
     progressValue !== undefined
@@ -78,7 +84,11 @@ function MetricCard({ label, value, unit, icon, empty, accentClass, progressValu
             {label}
           </CardDescription>
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-lg ${accentClass ?? 'bg-emerald-100 dark:bg-emerald-900/30'}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+              empty
+                ? 'bg-muted/60 dark:bg-muted/30'
+                : (accentClass ?? 'bg-emerald-100 dark:bg-emerald-900/30')
+            }`}
             aria-hidden="true"
           >
             {icon}
@@ -87,7 +97,19 @@ function MetricCard({ label, value, unit, icon, empty, accentClass, progressValu
       </CardHeader>
       <CardContent className="space-y-3">
         {empty ? (
-          <p className="text-sm text-muted-foreground italic">Log your first activity</p>
+          /*
+           * Empty placeholder: a dashed box with a short context-specific hint.
+           * The dashed border signals "something will appear here" without
+           * using colour as the only indicator (WCAG 1.4.1).
+           */
+          <div
+            className="rounded-lg border border-dashed border-muted-foreground/25 px-3 py-3 text-center"
+            aria-label={`${label}: no data yet. ${emptyHint ?? 'Log an entry to see this metric.'}`}
+          >
+            <p className="text-xs text-muted-foreground/70 leading-snug">
+              {emptyHint ?? 'Log an entry to see this metric.'}
+            </p>
+          </div>
         ) : (
           <>
             {/* Numeric value */}
@@ -273,12 +295,12 @@ export default async function DashboardPage() {
         {/* ── Welcome header ──────────────────────────────── */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-            Welcome back, {firstName} 🌿
+            {hasData ? `Welcome back, ${firstName} 🌿` : `Welcome to CarbonCanvas, ${firstName}! 🌱`}
           </h1>
           <p className="mt-1 text-muted-foreground">
             {hasData
               ? 'Here\'s your latest environmental snapshot. Log today\'s activity below.'
-              : 'Start tracking your carbon footprint below — your ecosystem will grow with every entry.'}
+              : 'You\'re starting something meaningful. Fill in today\'s activity below and watch your personal ecosystem come to life.'}
           </p>
         </div>
 
@@ -378,12 +400,67 @@ export default async function DashboardPage() {
                   />
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/30">
-                    <Sprout className="h-7 w-7 text-emerald-500" aria-hidden="true" />
+                /*
+                 * Ecosystem empty state — shown until the user's first entry
+                 * generates an ecosystem_states row.
+                 *
+                 * Design rationale:
+                 *  - Numbered steps remove ambiguity: the user knows exactly
+                 *    what to do and what will happen next.
+                 *  - The Sprout icon reinforces the living metaphor.
+                 *  - Accessible: the list is semantic (<ol>) and each step is
+                 *    a plain sentence that makes sense when read aloud.
+                 */
+                <div
+                  className="flex flex-col items-center gap-6 px-8 py-14 text-center"
+                  role="region"
+                  aria-label="Ecosystem not yet generated"
+                >
+                  {/* Illustration area */}
+                  <div className="relative flex items-center justify-center">
+                    <div className="h-20 w-20 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-950/60 dark:to-teal-950/60 flex items-center justify-center shadow-inner">
+                      <Sprout className="h-10 w-10 text-emerald-500" aria-hidden="true" />
+                    </div>
+                    {/* Decorative ring */}
+                    <div className="absolute h-28 w-28 rounded-full border-2 border-dashed border-emerald-200 dark:border-emerald-800/60" aria-hidden="true" />
                   </div>
-                  <p className="text-muted-foreground text-sm max-w-xs">
-                    Log your first activity to bring your ecosystem to life.
+
+                  {/* Heading + description */}
+                  <div className="space-y-1.5 max-w-sm">
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+                      Your ecosystem is waiting
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Every carbon entry you log shapes a living world unique to your choices.
+                    </p>
+                  </div>
+
+                  {/* 3-step micro-guide */}
+                  <ol
+                    className="text-left space-y-3 text-sm w-full max-w-xs"
+                    aria-label="How to generate your ecosystem"
+                  >
+                    {[
+                      { step: '1', text: 'Fill in today\'s transport, food, energy and shopping above.' },
+                      { step: '2', text: 'Submit the form — your carbon score is calculated instantly.' },
+                      { step: '3', text: 'Return here to see your ecosystem grow and reflect your impact.' },
+                    ].map(({ step, text }) => (
+                      <li key={step} className="flex items-start gap-3">
+                        <span
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-xs font-bold text-emerald-700 dark:text-emerald-400"
+                          aria-hidden="true"
+                        >
+                          {step}
+                        </span>
+                        <span className="text-muted-foreground pt-0.5 leading-snug">{text}</span>
+                      </li>
+                    ))}
+                  </ol>
+
+                  {/* Arrow pointing up toward the form */}
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    <ArrowRight className="h-3.5 w-3.5 rotate-[-90deg]" aria-hidden="true" />
+                    Start with the form above
                   </p>
                 </div>
               )}
@@ -424,6 +501,7 @@ export default async function DashboardPage() {
               empty={!hasData}
               accentClass="bg-orange-100 dark:bg-orange-900/30"
               icon={<Flame className="h-4 w-4 text-orange-500" />}
+              emptyHint="Your daily kg CO₂e total appears here after your first entry."
             />
 
             {/* Overall Health */}
@@ -436,6 +514,7 @@ export default async function DashboardPage() {
               icon={<Activity className="h-4 w-4 text-emerald-600" />}
               progressValue={overallHealth ?? 0}
               progressClass="[&_[data-slot=progress-indicator]]:bg-emerald-500"
+              emptyHint="Your composite ecosystem health score will appear here."
             />
 
             {/* Forest Health */}
@@ -448,6 +527,7 @@ export default async function DashboardPage() {
               icon={<TreePine className="h-4 w-4 text-green-600" />}
               progressValue={latestEcosystem?.forest_health ?? 0}
               progressClass="[&_[data-slot=progress-indicator]]:bg-green-500"
+              emptyHint="Low-carbon choices grow a denser, greener forest."
             />
 
             {/* Water Quality */}
@@ -460,6 +540,7 @@ export default async function DashboardPage() {
               icon={<Droplets className="h-4 w-4 text-blue-500" />}
               progressValue={latestEcosystem?.water_quality ?? 0}
               progressClass="[&_[data-slot=progress-indicator]]:bg-blue-500"
+              emptyHint="Cleaner energy and transport keep rivers healthy."
             />
 
             {/* Air Quality */}
@@ -472,6 +553,7 @@ export default async function DashboardPage() {
               icon={<Wind className="h-4 w-4 text-sky-500" />}
               progressValue={latestEcosystem?.air_quality ?? 0}
               progressClass="[&_[data-slot=progress-indicator]]:bg-sky-500"
+              emptyHint="Less driving and heating means cleaner, clearer skies."
             />
 
             {/* Biodiversity */}
@@ -484,6 +566,7 @@ export default async function DashboardPage() {
               icon={<Sprout className="h-4 w-4 text-teal-600" />}
               progressValue={latestEcosystem?.biodiversity ?? 0}
               progressClass="[&_[data-slot=progress-indicator]]:bg-teal-500"
+              emptyHint="Plant-rich diets and fewer purchases support more wildlife."
             />
 
           </div>

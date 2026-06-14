@@ -139,11 +139,54 @@ export function StreakCard({ currentStreak, longestStreak, hasEntries }: StreakC
       <CardContent className="space-y-4">
         {/* ── Empty state ──────────────────────────────────── */}
         {!hasEntries ? (
-          <div className="flex flex-col items-center gap-2 py-4 text-center">
-            <Flame className="h-8 w-8 text-muted-foreground/40" aria-hidden="true" />
-            <p className="text-sm text-muted-foreground max-w-[22ch]">
-              {message}
-            </p>
+          /*
+           * Empty state shown on first login — no entries logged yet.
+           * Uses a numbered list so the call-to-action is unambiguous
+           * even without colour (WCAG 1.4.1 — Use of Color).
+           * role="status" so screen readers announce this region politely.
+           */
+          <div
+            className="flex flex-col items-center gap-4 py-3 text-center"
+            role="status"
+            aria-label="No streak yet — start by logging your first entry"
+          >
+            {/* Icon cluster: flame behind a dashed circle */}
+            <div className="relative flex items-center justify-center">
+              <div className="h-14 w-14 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center">
+                <Flame className="h-7 w-7 text-amber-400/60" aria-hidden="true" />
+              </div>
+              <div
+                className="absolute h-20 w-20 rounded-full border-2 border-dashed border-amber-200 dark:border-amber-800/50"
+                aria-hidden="true"
+              />
+            </div>
+
+            <div className="space-y-1 max-w-[20ch]">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Your streak starts today
+              </p>
+              <p className="text-xs text-muted-foreground leading-snug">
+                Log an entry each day to build a streak and track your consistency.
+              </p>
+            </div>
+
+            {/* 2-step guide */}
+            <ol className="text-left space-y-2 text-xs w-full max-w-[22ch]" aria-label="How to start a streak">
+              {[
+                { step: '1', text: 'Log today\'s carbon activity above.' },
+                { step: '2', text: 'Come back tomorrow — your streak begins.' },
+              ].map(({ step, text }) => (
+                <li key={step} className="flex items-start gap-2.5">
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40 text-[10px] font-bold text-amber-700 dark:text-amber-400"
+                    aria-hidden="true"
+                  >
+                    {step}
+                  </span>
+                  <span className="text-muted-foreground pt-0.5 leading-snug">{text}</span>
+                </li>
+              ))}
+            </ol>
           </div>
         ) : (
           <>
