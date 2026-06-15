@@ -1,6 +1,7 @@
 'use server'
 
 import { z } from 'zod'
+import { revalidatePath } from 'next/cache'
 import { createServerClient } from '@/lib/supabase/server'
 import { calculateTotalCarbon } from '@/services/carbon-calculator'
 import { calculateEcosystemState } from '@/services/ecosystem-engine'
@@ -173,7 +174,7 @@ export async function submitCarbonEntry(
   if (entryError) {
     return {
       success: false,
-      message: `Failed to save your daily entry: ${entryError.message}`,
+      message: 'Failed to save your daily entry. Please try again later.',
     }
   }
 
@@ -217,9 +218,11 @@ export async function submitCarbonEntry(
   if (ecosystemError) {
     return {
       success: false,
-      message: `Failed to update your ecosystem: ${ecosystemError.message}`,
+      message: 'Failed to update your ecosystem. Please try again later.',
     }
   }
+
+  revalidatePath('/dashboard')
 
   return {
     success: true,

@@ -9,7 +9,7 @@
 
 import { TreePine, Droplets, Wind, Sprout, Sparkles } from 'lucide-react'
 import { generateEcosystemReflection } from '@/services/ecosystem-reflection'
-import { getHealthTierStyle, getHealthTierStyleByLabel } from '@/services/health-tier'
+import { getHealthTierStyleByLabel } from '@/services/health-tier'
 import type { ReflectionLine, EcosystemReflection } from '@/services/ecosystem-reflection'
 
 // ============================================================
