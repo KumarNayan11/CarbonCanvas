@@ -26,6 +26,7 @@ import {
   type TransportType,
   type FoodType,
 } from './carbon-calculator'
+import { calculateEcosystemState, type EcosystemState } from './ecosystem-engine'
 import type { DailyEntry } from '@/types'
 
 // ============================================================
@@ -117,6 +118,32 @@ export interface SimulationResult {
    * // reductionPercentage: 30  (meaning "30% less CO₂")
    */
   reductionPercentage: number | null
+
+  /**
+   * The ecosystem health metrics corresponding to the `currentCarbonScore`.
+   * Reuses the canonical DB transformation logic from the ecosystem engine.
+   */
+  currentEcosystem: EcosystemState
+
+  /**
+   * The predicted ecosystem health metrics if the hypothetical scenario
+   * were adopted, based on the `projectedCarbonScore`.
+   */
+  projectedEcosystem: EcosystemState
+
+  /**
+   * The absolute difference in each ecosystem metric:
+   * `projectedEcosystem.metric - currentEcosystem.metric`.
+   * Positive  → the scenario improves the ecosystem.
+   * Negative  → the scenario degrades the ecosystem.
+   * Zero      → no change to this metric.
+   */
+  ecosystemImprovement: {
+    forestHealth: number
+    waterQuality: number
+    airQuality: number
+    biodiversity: number
+  }
 }
 
 // ============================================================
@@ -237,7 +264,7 @@ export function simulateImpact(
   // Step 4: Compute the projected score using the same canonical formula.
   const projectedCarbonScore = calculateTotalCarbon(projectedInput)
 
-  // Step 5: Derive the reduction metrics.
+  // Step 5: Derive the carbon reduction metrics.
   const carbonReduction = round2(currentCarbonScore - projectedCarbonScore)
 
   const reductionPercentage =
@@ -245,11 +272,26 @@ export function simulateImpact(
       ? null
       : round2((carbonReduction / currentCarbonScore) * 100)
 
+  // Step 6: Compute the ecosystem state projections using the shared engine.
+  const currentEcosystem = calculateEcosystemState(currentCarbonScore)
+  const projectedEcosystem = calculateEcosystemState(projectedCarbonScore)
+
+  // Step 7: Derive the metric-by-metric ecosystem improvements.
+  const ecosystemImprovement = {
+    forestHealth: projectedEcosystem.forestHealth - currentEcosystem.forestHealth,
+    waterQuality: projectedEcosystem.waterQuality - currentEcosystem.waterQuality,
+    airQuality: projectedEcosystem.airQuality - currentEcosystem.airQuality,
+    biodiversity: projectedEcosystem.biodiversity - currentEcosystem.biodiversity,
+  }
+
   return {
     currentCarbonScore,
     projectedCarbonScore,
     carbonReduction,
     reductionPercentage,
+    currentEcosystem,
+    projectedEcosystem,
+    ecosystemImprovement,
   }
 }
 
