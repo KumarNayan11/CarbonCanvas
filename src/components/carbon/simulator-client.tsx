@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { simulateImpact } from '@/services/impact-simulator'
+import { EcosystemComparison } from '@/components/ecosystem/ecosystem-comparison'
 import type { DailyEntry } from '@/types'
 import type { TransportType, FoodType } from '@/services/carbon-calculator'
 import type { SimulationChanges } from '@/services/impact-simulator'
@@ -118,9 +119,9 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
   }, [initialEntry, transportType, transportDistanceKm, foodType, energyUsageKwh, shoppingItems])
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      {/* ── Left Column: Form ────────────────────────────── */}
-      <Card className="border border-emerald-100 dark:border-emerald-900/50 shadow-xl shadow-emerald-900/5 h-fit">
+    <div className="space-y-8">
+      {/* ── 1. Form ────────────────────────────────────────── */}
+      <Card className="border border-emerald-100 dark:border-emerald-900/50 shadow-xl shadow-emerald-900/5">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-xl font-semibold">Simulation Parameters</CardTitle>
           <CardDescription className="text-muted-foreground">
@@ -128,11 +129,10 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {/* ── Transport section ────────────────────────── */}
-            <fieldset className="space-y-4">
-              <legend className="text-sm font-medium text-foreground">Transport</legend>
-
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-foreground">Transport</h3>
               <div className="space-y-2">
                 <Label htmlFor="transportType">Transport type</Label>
                 <select
@@ -149,7 +149,6 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
                   <option value="bicycle">🚲 Bicycle</option>
                   <option value="walking">🚶 Walking</option>
                 </select>
-                <FieldHint id="transportType-hint">Hypothetical primary transport.</FieldHint>
               </div>
 
               <div className="space-y-2">
@@ -165,14 +164,12 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
                   aria-describedby="transportDistanceKm-hint"
                   className="transition-all duration-200 focus:ring-2 focus:ring-emerald-500/40"
                 />
-                <FieldHint id="transportDistanceKm-hint">Hypothetical distance travelled.</FieldHint>
               </div>
-            </fieldset>
+            </div>
 
             {/* ── Food section ─────────────────────────────── */}
-            <fieldset className="space-y-4">
-              <legend className="text-sm font-medium text-foreground">Food</legend>
-
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-foreground">Food</h3>
               <div className="space-y-2">
                 <Label htmlFor="foodType">Diet type</Label>
                 <select
@@ -187,14 +184,12 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
                   <option value="mixed">🍽️ Mixed</option>
                   <option value="meat">🥩 Meat-heavy</option>
                 </select>
-                <FieldHint id="foodType-hint">Hypothetical diet type.</FieldHint>
               </div>
-            </fieldset>
+            </div>
 
             {/* ── Energy section ───────────────────────────── */}
-            <fieldset className="space-y-4">
-              <legend className="text-sm font-medium text-foreground">Energy</legend>
-
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-foreground">Energy</h3>
               <div className="space-y-2">
                 <Label htmlFor="energyUsageKwh">Energy usage (kWh)</Label>
                 <Input
@@ -208,14 +203,12 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
                   aria-describedby="energyUsageKwh-hint"
                   className="transition-all duration-200 focus:ring-2 focus:ring-emerald-500/40"
                 />
-                <FieldHint id="energyUsageKwh-hint">Hypothetical household electricity usage.</FieldHint>
               </div>
-            </fieldset>
+            </div>
 
             {/* ── Shopping section ─────────────────────────── */}
-            <fieldset className="space-y-4">
-              <legend className="text-sm font-medium text-foreground">Shopping</legend>
-
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-foreground">Shopping</h3>
               <div className="space-y-2">
                 <Label htmlFor="shoppingItems">Shopping items</Label>
                 <Input
@@ -229,15 +222,21 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
                   aria-describedby="shoppingItems-hint"
                   className="transition-all duration-200 focus:ring-2 focus:ring-emerald-500/40"
                 />
-                <FieldHint id="shoppingItems-hint">Hypothetical newly purchased items.</FieldHint>
               </div>
-            </fieldset>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* ── Right Column: Results ──────────────────────────── */}
-      <div className="space-y-6">
+      {/* ── 2. Ecosystem Comparison (Visual) ───────────────── */}
+      <EcosystemComparison
+        currentEcosystem={simulation.currentEcosystem}
+        projectedEcosystem={simulation.projectedEcosystem}
+        ecosystemImprovement={simulation.ecosystemImprovement}
+      />
+
+      {/* ── 3. Numerical Metrics ───────────────────────────── */}
+      <div className="grid gap-8 lg:grid-cols-2">
         {/* Carbon Impact Card */}
         <Card className="border-orange-100 dark:border-orange-900/40 shadow-md">
           <CardHeader>
@@ -264,8 +263,8 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
         {/* Ecosystem Impact Card */}
         <Card className="border-emerald-100 dark:border-emerald-900/40 shadow-md">
           <CardHeader>
-            <CardTitle>Ecosystem Projection</CardTitle>
-            <CardDescription>How this scenario transforms your virtual world.</CardDescription>
+            <CardTitle>Ecosystem Metrics</CardTitle>
+            <CardDescription>Detailed breakdown of your virtual world's health.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <MetricProjection

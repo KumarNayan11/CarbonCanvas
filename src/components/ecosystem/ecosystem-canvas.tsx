@@ -190,10 +190,10 @@ function PineTree({
 
   return (
     <g>
-      <rect x={x - trunkW / 2} y={trunkTop} width={trunkW} height={trunkH} fill={trunkFill} rx={1} />
-      <polygon points={layer1} fill={fill} />
-      <polygon points={layer2} fill={midFill} opacity={0.88} />
-      <polygon points={layer3} fill={midFill} opacity={0.72} />
+      <rect x={x - trunkW / 2} y={trunkTop} width={trunkW} height={trunkH} fill={trunkFill} rx={1} className="transition-colors duration-700 ease-in-out" />
+      <polygon points={layer1} fill={fill} className="transition-colors duration-700 ease-in-out" />
+      <polygon points={layer2} fill={midFill} opacity={0.88} className="transition-colors duration-700 ease-in-out" />
+      <polygon points={layer3} fill={midFill} opacity={0.72} className="transition-colors duration-700 ease-in-out" />
     </g>
   )
 }
@@ -209,10 +209,10 @@ interface CloudProps {
 function Cloud({ cx, cy, scale, fill }: CloudProps) {
   return (
     <g transform={`translate(${cx},${cy}) scale(${scale})`}>
-      <ellipse cx={0} cy={0} rx={32} ry={19} fill={fill} />
-      <ellipse cx={24} cy={-10} rx={24} ry={17} fill={fill} />
-      <ellipse cx={-20} cy={-8} rx={22} ry={15} fill={fill} />
-      <ellipse cx={8} cy={-20} rx={18} ry={14} fill={fill} />
+      <ellipse cx={0} cy={0} rx={32} ry={19} fill={fill} className="transition-colors duration-700 ease-in-out" />
+      <ellipse cx={24} cy={-10} rx={24} ry={17} fill={fill} className="transition-colors duration-700 ease-in-out" />
+      <ellipse cx={-20} cy={-8} rx={22} ry={15} fill={fill} className="transition-colors duration-700 ease-in-out" />
+      <ellipse cx={8} cy={-20} rx={18} ry={14} fill={fill} className="transition-colors duration-700 ease-in-out" />
     </g>
   )
 }
@@ -403,6 +403,7 @@ function Bird({ x, y, scale = 1, color }: BirdProps) {
       strokeWidth={1.5 * s}
       fill="none"
       strokeLinecap="round"
+      className="transition-colors duration-700 ease-in-out"
     />
   )
 }
@@ -663,17 +664,17 @@ export function EcosystemCanvas({
       {/* ── Gradient definitions ─────────────────────────── */}
       <defs>
         <linearGradient id="ec-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={skyTop} />
-          <stop offset="100%" stopColor={skyBottom} />
+          <stop offset="0%" stopColor={skyTop} style={{ transition: 'stop-color 700ms ease-in-out' }} />
+          <stop offset="100%" stopColor={skyBottom} style={{ transition: 'stop-color 700ms ease-in-out' }} />
         </linearGradient>
         <linearGradient id="ec-ground" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={groundHighlight} />
-          <stop offset="100%" stopColor={groundFill} />
+          <stop offset="0%" stopColor={groundHighlight} style={{ transition: 'stop-color 700ms ease-in-out' }} />
+          <stop offset="100%" stopColor={groundFill} style={{ transition: 'stop-color 700ms ease-in-out' }} />
         </linearGradient>
         <linearGradient id="ec-river" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={riverFill} />
-          <stop offset="50%" stopColor={riverHighlight} />
-          <stop offset="100%" stopColor={riverFill} />
+          <stop offset="0%" stopColor={riverFill} style={{ transition: 'stop-color 700ms ease-in-out' }} />
+          <stop offset="50%" stopColor={riverHighlight} style={{ transition: 'stop-color 700ms ease-in-out' }} />
+          <stop offset="100%" stopColor={riverFill} style={{ transition: 'stop-color 700ms ease-in-out' }} />
         </linearGradient>
       </defs>
 
@@ -749,7 +750,7 @@ export function EcosystemCanvas({
       <rect x={0} y={GROUND_Y} width={W} height={H - GROUND_Y} fill="url(#ec-ground)" />
 
       {/* ── River ───────────────────────────────────────── */}
-      <path d={riverPath} fill="url(#ec-river)" opacity={waterTier === 'poor' ? 0.7 : 0.9} />
+      <path d={riverPath} fill="url(#ec-river)" opacity={waterTier === 'poor' ? 0.7 : 0.9} className="transition-opacity duration-700 ease-in-out" style={{ transitionProperty: 'opacity, d' }} />
       {/* Ripple highlights on river (healthy/moderate only) */}
       {waterTier !== 'poor' && (
         <ellipse
