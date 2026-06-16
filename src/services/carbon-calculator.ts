@@ -15,13 +15,13 @@
  * Supported modes of transport for carbon calculation.
  * Maps directly to the `transport_type` column in `public.daily_entries`.
  */
-export type TransportType = 'car' | 'bus' | 'train' | 'bicycle' | 'walking'
+export type TransportType = 'car' | 'bus' | 'train' | 'bicycle' | 'walking' | 'unknown'
 
 /**
  * Dietary category of the user.
  * Maps directly to the `food_type` column in `public.daily_entries`.
  */
-export type FoodType = 'vegetarian' | 'mixed' | 'meat'
+export type FoodType = 'vegetarian' | 'mixed' | 'meat' | 'unknown'
 
 /**
  * All inputs required to compute a full daily carbon footprint.
@@ -63,6 +63,7 @@ const TRANSPORT_FACTORS: Record<TransportType, number> = {
   train: 0.04,
   bicycle: 0,
   walking: 0,
+  unknown: 0.14, // Roughly average of car and public transit
 } as const
 
 /** kg CO₂e emitted per day by dietary category. */
@@ -70,6 +71,7 @@ const FOOD_FACTORS: Record<FoodType, number> = {
   vegetarian: 1.5,
   mixed: 2.5,
   meat: 5.0,
+  unknown: 2.5, // Default to mixed diet as a safe average
 } as const
 
 /** kg CO₂e emitted per kWh of energy consumed. */
