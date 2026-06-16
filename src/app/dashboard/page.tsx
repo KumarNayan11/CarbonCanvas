@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import {
   Leaf,
   LogOut,
@@ -14,6 +15,7 @@ import {
   Activity,
   Flame,
   ArrowRight,
+  FlaskConical,
 } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
@@ -271,8 +273,19 @@ export default async function DashboardPage() {
               </span>
             </div>
 
-            {/* Sign-out action — wrapped in a <nav> so it appears in landmark navigation */}
-            <nav aria-label="Account actions">
+            {/* Navigation actions — wrapped in a <nav> so it appears in landmark navigation */}
+            <nav aria-label="Account actions" className="flex items-center gap-3">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100/50 dark:text-emerald-300 dark:hover:text-emerald-200 dark:hover:bg-emerald-900/30"
+              >
+                <Link href="/simulator">
+                  <FlaskConical className="h-4 w-4" aria-hidden="true" />
+                  Simulator
+                </Link>
+              </Button>
               <form action={signOut}>
                 <Button
                   type="submit"
