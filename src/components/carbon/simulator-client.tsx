@@ -1,28 +1,27 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { ArrowRight, MoveRight, TrendingDown, TrendingUp, Minus } from 'lucide-react'
+import { useState, useMemo, useEffect, useTransition, useRef } from 'react'
+import { MoveRight, TrendingDown, TrendingUp, Minus } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { simulateImpact } from '@/services/impact-simulator'
 import { EcosystemComparison } from '@/components/ecosystem/ecosystem-comparison'
+import {
+  SimulatorNarrativePanel,
+  SimulatorNarrativeSkeleton,
+  SimulatorNarrativeError,
+} from '@/components/carbon/simulator-narrative-panel'
+import { generateSimulationNarrative } from '@/app/actions/simulator'
 import type { DailyEntry } from '@/types'
 import type { TransportType, FoodType } from '@/services/carbon-calculator'
 import type { SimulationChanges } from '@/services/impact-simulator'
+import type { SimulatorNarrative } from '@/services/simulator-narrative'
 
 // ============================================================
 // Sub-components
 // ============================================================
 
-/** Muted helper text beneath a form field. */
-function FieldHint({ id, children }: { id: string; children: React.ReactNode }) {
-  return (
-    <p id={id} className="text-xs text-muted-foreground">
-      {children}
-    </p>
-  )
-}
 
 /** Displays a single metric's projection */
 function MetricProjection({
@@ -88,6 +87,19 @@ function MetricProjection({
 // Main Component
 // ============================================================
 
+/**
+ * Narrative state machine:
+ * - 'idle'    → initial state, no narrative yet
+ * - 'loading' → Server Action in flight
+ * - 'ready'   → narrative received and displayed
+ * - 'error'   → Server Action returned an error
+ */
+type NarrativeState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; narrative: SimulatorNarrative }
+  | { status: 'error' }
+
 export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) {
   // We initialize the form state to match the initial entry exactly.
   // Using empty strings for nulls ensures inputs are controlled.
@@ -103,6 +115,14 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
     initialEntry.shopping_items?.toString() ?? '',
   )
 
+  // Narrative state
+  const [narrativeState, setNarrativeState] = useState<NarrativeState>({ status: 'idle' })
+  const [, startTransition] = useTransition()
+
+  // Debounce ref — we wait 900ms after the last input change before calling
+  // the Server Action, so rapid typing doesn't hammer the Gemini API.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Use useMemo to compute the simulation result whenever inputs change.
   // This keeps the UI completely reactive without needing a "Run" button.
   const simulation = useMemo(() => {
@@ -117,6 +137,50 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
 
     return simulateImpact(initialEntry, changes)
   }, [initialEntry, transportType, transportDistanceKm, foodType, energyUsageKwh, shoppingItems])
+
+  // ── Narrative generation ─────────────────────────────────
+  // Trigger a debounced Server Action call whenever the simulation changes.
+  // Uses useEffect so the narrative update is always async and never blocks
+  // the synchronous simulation rendering.
+  //
+  // The loading state is set inside the setTimeout callback (not synchronously)
+  // to comply with the react-hooks/set-state-in-effect lint rule.
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+
+    debounceRef.current = setTimeout(() => {
+      // Mark as loading only when the debounce period has elapsed
+      setNarrativeState({ status: 'loading' })
+
+      startTransition(async () => {
+        try {
+          const result = await generateSimulationNarrative({
+            currentCarbonScore: simulation.currentCarbonScore,
+            projectedCarbonScore: simulation.projectedCarbonScore,
+            carbonReduction: simulation.carbonReduction,
+            reductionPercentage: simulation.reductionPercentage,
+            ecosystemImprovement: simulation.ecosystemImprovement,
+          })
+
+          if (result.success) {
+            setNarrativeState({ status: 'ready', narrative: result.narrative })
+          } else {
+            setNarrativeState({ status: 'error' })
+          }
+        } catch {
+          setNarrativeState({ status: 'error' })
+        }
+      })
+    }, 900)
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [simulation])
 
   return (
     <div className="space-y-8">
@@ -235,7 +299,26 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
         ecosystemImprovement={simulation.ecosystemImprovement}
       />
 
-      {/* ── 3. Numerical Metrics ───────────────────────────── */}
+      {/* ── 3. AI What-If Narrative ─────────────────────────
+       *
+       * Displayed directly below the ecosystem comparison section.
+       * The narrative is generated server-side (Gemini or fallback)
+       * and never written to the database.
+       *
+       * WCAG 2.1 SC 4.1.3 — Status Messages (Level AA)
+       * aria-live="polite" on the wrapper announces narrative updates
+       * to screen readers without interrupting the user.
+       */}
+      <div aria-live="polite" aria-atomic="true">
+        {narrativeState.status === 'loading' && <SimulatorNarrativeSkeleton />}
+        {narrativeState.status === 'ready' && (
+          <SimulatorNarrativePanel narrative={narrativeState.narrative} />
+        )}
+        {narrativeState.status === 'error' && <SimulatorNarrativeError />}
+        {/* 'idle' renders nothing — panel appears after first simulation change */}
+      </div>
+
+      {/* ── 4. Numerical Metrics ───────────────────────────── */}
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Carbon Impact Card */}
         <Card className="border-orange-100 dark:border-orange-900/40 shadow-md">
@@ -264,7 +347,7 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
         <Card className="border-emerald-100 dark:border-emerald-900/40 shadow-md">
           <CardHeader>
             <CardTitle>Ecosystem Metrics</CardTitle>
-            <CardDescription>Detailed breakdown of your virtual world's health.</CardDescription>
+            <CardDescription>Detailed breakdown of your virtual world&apos;s health.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <MetricProjection
