@@ -241,3 +241,7 @@ CarbonCanvas is built with inclusivity in mind:
 ## 📄 License
 
 This project is open-source and available under the [MIT License](LICENSE).
+
+---
+
+Built by Nayan Jain for prompt wars Virtual India as part of submission in main challenge 3.
