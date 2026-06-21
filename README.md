@@ -107,6 +107,37 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
 
 ---
 
+## 🚀 Deploying to Vercel
+
+CarbonCanvas deploys to Vercel without any additional configuration file (`vercel.json`). The default Next.js 16 adapter handles everything automatically.
+
+### Prerequisites
+
+- A [Vercel account](https://vercel.com) connected to your GitHub repository.
+- Your Supabase project and (optionally) a Google AI Studio API key.
+
+### Step-by-step
+
+1. **Push to GitHub** — Vercel auto-deploys on every push to `main`.
+
+2. **Connect the repo** in Vercel Dashboard → New Project → Import from GitHub.
+
+3. **Set environment variables** in *Project Settings → Environment Variables*:
+
+   | Variable | Required | Description |
+   |---|---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | ✅ Yes | Your Supabase project URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ Yes | Supabase public anon key |
+   | `GEMINI_API_KEY` | ⬜ Optional | Gemini Flash API key. When absent the simulator uses deterministic template narratives. |
+
+   > **Never** put your Supabase `service_role` key or any private key in Vercel environment variables accessible from client-side code.
+
+4. **Deploy** — Click *Deploy*. Vercel runs `npm run build` automatically.
+
+5. **Supabase CORS** — Add your Vercel deployment URL (e.g. `https://carbon-canvas.vercel.app`) to the *Allowed Origins* list in your Supabase Dashboard under **Auth → URL Configuration**.
+
+---
+
 ## 🏛 Architecture Overview
 
 CarbonCanvas strictly adheres to Next.js App Router best practices:
