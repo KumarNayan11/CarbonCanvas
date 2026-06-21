@@ -23,6 +23,7 @@ import { OnboardingCard } from '@/components/dashboard/onboarding-card'
 import { EcosystemCanvas } from '@/components/ecosystem/ecosystem-canvas'
 import { EcosystemStatusBadges } from '@/components/ecosystem/ecosystem-status-badges'
 import { EcosystemReflectionPanel } from '@/components/ecosystem/ecosystem-reflection-panel'
+import { ProgressSection } from '@/components/dashboard/progress-section'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -180,7 +181,14 @@ export default async function DashboardPage() {
   // ----------------------------------------------------------
   // 2. Parallel data fetching
   // ----------------------------------------------------------
-  const [profileResult, latestEntryResult, latestEcosystemResult, allEntryDatesResult] = await Promise.all([
+  const [
+    profileResult, 
+    latestEntryResult, 
+    latestEcosystemResult, 
+    allEntriesResult, 
+    recentEcosystemsResult,
+    firstEcosystemResult
+  ] = await Promise.all([
     supabase
       .from('profiles')
       .select('*')
@@ -206,34 +214,46 @@ export default async function DashboardPage() {
       .limit(1)
       .maybeSingle<EcosystemState>(),
 
-    // All entry dates — lightweight select for streak calculation.
-    // We only need the `date` column so the payload is minimal.
+    // All entries for history and streak calculation
     supabase
       .from('daily_entries')
-      .select('date')
+      .select('*')
       .eq('user_id', user.id)
-      .order('date', { ascending: true }),
+      .order('date', { ascending: false }),
+
+    // Recent ecosystem states for the journey timeline
+    supabase
+      .from('ecosystem_states')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5),
+
+    // First ever ecosystem state for journey baseline
+    supabase
+      .from('ecosystem_states')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle<EcosystemState>(),
   ])
 
   const profile = profileResult.data
   const latestEntry = latestEntryResult.data   // null when no entries yet
   const latestEcosystem = latestEcosystemResult.data  // null when no snapshots yet
+  
+  const allEntries: DailyEntry[] = allEntriesResult.data ?? []
+  const recentEcosystems: EcosystemState[] = recentEcosystemsResult.data ?? []
+  const firstEcosystem: EcosystemState | null = firstEcosystemResult.data
+
   // Extract date strings; fall back to [] on error (e.g. RLS policy change).
-  const entryDates: string[] = (allEntryDatesResult.data ?? []).map((r) => r.date as string)
+  const entryDates: string[] = allEntries.map((r) => r.date as string)
 
   // ----------------------------------------------------------
   // 3. Derived display values
   // ----------------------------------------------------------
-  const displayName = profile?.full_name ?? user.email ?? 'Explorer'
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Explorer'
-
-  const joinedAt = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : 'Unknown'
 
   // Compute overall health via service layer (avoids duplicating the avg formula)
   const overallHealth = latestEcosystem
@@ -329,7 +349,7 @@ export default async function DashboardPage() {
           </h1>
           {hasData && (
             <p className="mt-1 text-muted-foreground">
-              Here's your latest environmental snapshot.
+              Here&apos;s your latest environmental snapshot.
             </p>
           )}
         </div>
@@ -502,7 +522,17 @@ export default async function DashboardPage() {
           />
         </section>
 
-
+        {/* ── 5. Your Progress (History / Journey) ────────── */}
+        <section aria-labelledby="progress-heading">
+          <h2 id="progress-heading" className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Your Progress
+          </h2>
+          <ProgressSection 
+            entries={allEntries} 
+            ecosystemStates={recentEcosystems}
+            firstEcosystem={firstEcosystem}
+          />
+        </section>
 
       </main>
     </div>
