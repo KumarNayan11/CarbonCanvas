@@ -50,10 +50,19 @@ CarbonCanvas/
 │   │   │   ├── login-form.tsx
 │   │   │   └── signup-form.tsx
 │   │   ├── carbon/                     # Carbon tracking & simulator UI
-│   │   │   ├── carbon-entry-form.tsx   # Daily activity logger form
+│   │   │   ├── carbon-entry-form.tsx   # Legacy flat form (optional fallback)
+│   │   │   ├── guided-entry-dialog.tsx # New multi-step guided logging
 │   │   │   ├── simulator-client.tsx    # Client-side Impact Simulator shell
 │   │   │   ├── simulator-narrative-panel.tsx  # AI narrative display
 │   │   │   └── streak-card.tsx         # Current & longest streak display
+│   │   ├── dashboard/                  # Layout and widgets for main dashboard
+│   │   │   ├── achievement-card.tsx
+│   │   │   ├── achievements-section.tsx
+│   │   │   ├── ecosystem-journey.tsx
+│   │   │   ├── onboarding-card.tsx
+│   │   │   ├── progress-section.tsx
+│   │   │   ├── recent-activity.tsx
+│   │   │   └── trend-summary.tsx
 │   │   ├── ecosystem/                  # SVG visualizers & reflection panels
 │   │   │   ├── ecosystem-canvas.tsx    # Primary SVG ecosystem visualization
 │   │   │   ├── ecosystem-comparison.tsx # Side-by-side current vs. projected view

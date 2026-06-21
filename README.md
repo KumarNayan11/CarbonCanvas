@@ -34,6 +34,7 @@ Features like the **Impact Simulator** and **AI What-If Narratives** empower use
 - **Impact Simulator**: An interactive what-if simulator that lets you experiment with hypothetical lifestyle changes and preview their effect on your carbon score side-by-side.
 - **AI What-If Narratives**: Gemini Flash generates a personalised three-part narrative (Observation, Implication, Suggested Action) for each simulation result.
 - **Deterministic AI Reflections**: Generates cross-dimensional narrative insights about your ecosystem state. Falls back to deterministic templates when no API key is configured, ensuring the app never breaks.
+- **UX Polish & Aesthetics**: Fluid micro-animations, consistent WCAG AA compliant design tokens, and a responsive grid layout using Tailwind v4 and shadcn/ui.
 
 ---
 

@@ -156,9 +156,50 @@ To minimize API costs and latency, Gemini is called **at most once per user per 
 
 This means returning users on the same day see instant responses. The `UNIQUE(user_id, generated_for_date, insight_type)` constraint on the `insights` table enforces cache integrity at the database level.
 
+## 3. Technology Stack Inventory
+
+This section catalogs the primary technologies, libraries, and services used across the platform.
+
+### Frontend
+
+| Technology | Purpose | Where Used | Implementation Notes |
+|---|---|---|---|
+| **Next.js 16** | Core framework | App Router | Used exclusively with App Router constraints. Routing is server-first, minimizing client bundle sizes. |
+| **React** | UI library | `src/components/` | Utilized primarily as Server Components, with Client Components restricted to interactive elements. |
+| **TypeScript** | Type safety | Codebase-wide | Enforces strict typings for Supabase responses and internal domain logic. |
+| **Tailwind CSS v4** | Styling | `src/app/globals.css` | CSS-first configuration without `tailwind.config.ts`. Used for all layout and micro-animations. |
+| **shadcn/ui** | Component library | `src/components/ui/` | Unstyled components customized with CarbonCanvas design tokens. |
+| **Lucide React** | Icons | Codebase-wide | Lightweight, consistent iconography used across forms, badges, and dashboard elements. |
+
+### Backend
+
+| Technology | Purpose | Where Used | Implementation Notes |
+|---|---|---|---|
+| **Server Actions** | API layer | `src/app/actions/` | Replaced traditional `/api/` routes. Handles form submissions, mutations, and AI calls securely on the server. |
+| **Supabase Auth** | Authentication | `src/lib/supabase/` | SSR-based cookie session management. Uses verified `getUser()` for strict route protection. |
+| **Supabase PostgreSQL** | Primary Database | `supabase/schema.sql` | Houses `profiles`, `daily_entries`, `ecosystem_states`, and `insights`. |
+| **RLS Policies** | Database Security | `supabase/schema.sql` | Enforces that authenticated users can only access their own data, and restricts service-role-only actions. |
+
+### AI
+
+| Technology | Purpose | Where Used | Implementation Notes |
+|---|---|---|---|
+| **Gemini Flash** | AI intelligence | `src/services/simulator-narrative.ts` | Fast, low-latency generation of personalized sustainability narratives in the simulator. |
+| **Simulator Narrative Engine** | AI orchestration | `src/services/simulator-narrative.ts` | Structures the prompt context and ensures the output follows the Observation/Implication/Action format. |
+| **Deterministic Fallback Narrative System** | Graceful degradation | `src/services/ecosystem-reflection.ts` | Pure typescript lookup tables mapping health tiers to narrative sentences. Requires no API keys. |
+
+### Developer Tooling
+
+| Technology | Purpose | Where Used | Implementation Notes |
+|---|---|---|---|
+| **ESLint** | Code quality | Build pipeline | Enforces React hooks rules and Next.js best practices to catch issues early. |
+| **TypeScript** | Compilation | Build pipeline | Strict mode enabled to ensure zero `any` types and catch schema drift. |
+| **Vitest** | Unit testing | `tests/` | Extremely fast tests for the pure `services/` layer, mocking no Next.js or Supabase logic. |
+| **Vercel** | Deployment | Production hosting | Auto-deployments configured for the `main` branch with environment variables securely managed. |
+
 ---
 
-## 3. Human-Driven Decisions
+## 4. Human-Driven Decisions
 
 This section documents what AI tools explicitly did **not** decide. These were human judgment calls that required product intuition, ethical reasoning, or domain expertise that no prompt could fully specify.
 
