@@ -51,7 +51,7 @@ export function SimulatorNarrativeSkeleton() {
       </div>
 
       <Card className="border-emerald-100 dark:border-emerald-900/40 shadow-md">
-        <CardContent className="p-5 space-y-5">
+        <CardContent className="p-6 space-y-5">
           {[
             { icon: Eye,        label: 'Observation'    },
             { icon: Leaf,       label: 'Implication'    },
@@ -123,7 +123,7 @@ interface NarrativeRowProps {
 function NarrativeRow({ icon: Icon, label, text, accentClass, iconClass }: NarrativeRowProps) {
   return (
     <div
-      className="flex items-start gap-3 py-3 first:pt-0 last:pb-0 border-b border-border/40 last:border-0"
+      className="flex items-start gap-3 py-4 first:pt-0 last:pb-0 border-b border-border/40 last:border-0"
       aria-label={`${label}: ${text}`}
     >
       {/* Icon chip */}
@@ -193,7 +193,7 @@ export function SimulatorNarrativePanel({ narrative }: SimulatorNarrativePanelPr
 
       {/* Narrative card */}
       <Card className="border-emerald-100 dark:border-emerald-900/40 shadow-md">
-        <CardContent className="p-5 space-y-0 divide-y divide-border/40">
+        <CardContent className="p-6 space-y-0 divide-y divide-border/40">
           <NarrativeRow
             icon={Eye}
             label="Observation"

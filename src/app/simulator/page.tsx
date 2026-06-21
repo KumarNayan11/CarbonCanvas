@@ -84,7 +84,7 @@ export default async function SimulatorPage() {
         </div>
       </header>
 
-      <main id="main-content" className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      <main id="main-content" className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-12">
         {/* ── Welcome header ──────────────────────────────── */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-3">

@@ -341,7 +341,7 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <main id="main-content" className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      <main id="main-content" className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-12">
 
         {/* ── Welcome header ──────────────────────────────── */}
         <div>
@@ -424,7 +424,7 @@ export default async function DashboardPage() {
             Ecosystem Health Summary
           </h2>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <MetricCard
               label="Carbon score"
               value={latestEntry?.carbon_score ?? 0}

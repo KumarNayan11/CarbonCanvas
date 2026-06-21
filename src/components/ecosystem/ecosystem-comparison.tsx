@@ -52,7 +52,7 @@ export function EcosystemComparison({
             <h3 className="text-sm font-medium text-center text-muted-foreground">
               Current Baseline
             </h3>
-            <div className="rounded-xl ring-2 ring-border/50 overflow-hidden shadow-sm">
+            <div className="rounded-xl ring-2 ring-border/50 overflow-hidden shadow-sm bg-gray-50/50 dark:bg-white/5">
               <EcosystemCanvas
                 forestHealth={currentEcosystem.forestHealth}
                 waterQuality={currentEcosystem.waterQuality}
@@ -67,7 +67,7 @@ export function EcosystemComparison({
             <h3 className="text-sm font-medium text-center text-foreground">
               Projected Future
             </h3>
-            <div className="rounded-xl ring-2 ring-emerald-500/30 overflow-hidden shadow-md">
+            <div className="rounded-xl ring-2 ring-emerald-500/30 overflow-hidden shadow-md bg-emerald-50/30 dark:bg-emerald-950/20">
               <EcosystemCanvas
                 forestHealth={projectedEcosystem.forestHealth}
                 waterQuality={projectedEcosystem.waterQuality}

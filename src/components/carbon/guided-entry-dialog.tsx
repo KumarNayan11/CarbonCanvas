@@ -68,7 +68,7 @@ export function GuidedEntryDialog({
 
       <DialogContent
         data-slot="dialog-content"
-        className="max-w-lg max-h-[85vh] overflow-y-auto sm:max-w-xl"
+        className="max-w-lg max-h-[85vh] overflow-y-auto scroll-smooth sm:max-w-xl"
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">

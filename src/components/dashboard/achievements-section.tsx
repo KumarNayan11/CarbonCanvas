@@ -223,7 +223,7 @@ export function AchievementsSection({ totalEntries, currentStreak, latestEcosyst
                 <nextMilestone.icon className="h-6 w-6" />
               </div>
             </div>
-            <Progress value={nextMilestone.progressPercent} className="h-1.5 mt-4" />
+            <Progress value={nextMilestone.progressPercent} className="h-2 mt-4" />
           </div>
         ) : (
           <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
@@ -240,7 +240,7 @@ export function AchievementsSection({ totalEntries, currentStreak, latestEcosyst
       <AchievementShareCard unlockedCount={unlockedCount} />
 
       {/* Achievement Categories */}
-      <div className="space-y-10">
+      <div className="space-y-12">
         {(Object.entries(groupedByCategory) as [Category, typeof evaluatedAchievements][]).map(([categoryName, items]) => (
           <section key={categoryName}>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
@@ -249,7 +249,7 @@ export function AchievementsSection({ totalEntries, currentStreak, latestEcosyst
                 ({items.filter(i => i.isUnlocked).length}/{items.length})
               </span>
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
               {items.map(item => (
                 <AchievementCard
                   key={item.id}

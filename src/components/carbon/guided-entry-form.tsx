@@ -272,11 +272,11 @@ export function GuidedEntryForm({
         </div>
 
         {/* Header */}
-        <div className="text-center space-y-1">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+        <div className="text-center space-y-2">
+          <h3 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
             {hasTodayEntry ? 'Today\u2019s entry updated' : 'New entry created'}
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm font-medium text-muted-foreground">
             Your ecosystem has been updated to reflect your choices.
           </p>
         </div>
@@ -363,7 +363,7 @@ export function GuidedEntryForm({
       {/* ── 1. Transport ─────────────────────────────────── */}
       <div>
         <SectionLabel>How did you travel today?</SectionLabel>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           {TRANSPORT_OPTIONS.map((opt) => (
             <SelectionCard
               key={opt.value}
@@ -389,7 +389,7 @@ export function GuidedEntryForm({
       {showDistance && (
         <div>
           <SectionLabel>Distance travelled</SectionLabel>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {DISTANCE_PRESETS.map((preset) => (
               <SelectionCard
                 key={preset.value}
@@ -477,7 +477,7 @@ export function GuidedEntryForm({
       {/* ── 5. Consumption ───────────────────────────────── */}
       <div>
         <SectionLabel>Consumption today</SectionLabel>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {CONSUMPTION_OPTIONS.map((opt) => (
             <SelectionCard
               key={opt.value}
@@ -547,7 +547,7 @@ export function GuidedEntryForm({
       <Button
         type="submit"
         disabled={!isComplete || isPending}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white transition-all duration-200 disabled:opacity-50"
+        className="w-full h-12 text-base font-semibold shadow-md hover:shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all duration-200 disabled:opacity-50"
         aria-busy={isPending}
       >
         {isPending ? (

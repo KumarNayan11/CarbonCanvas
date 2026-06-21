@@ -199,7 +199,7 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
             {/* ── Transport section ────────────────────────── */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-foreground">Transport</h3>
