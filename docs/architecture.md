@@ -1,126 +1,136 @@
-# CarbonCanvas: Final Approved Architecture
+# CarbonCanvas: Architecture
 
-This document finalizes the architecture for the CarbonCanvas 10-day MVP hackathon project. It consolidates the initial production proposal and the hackathon simplification revision while incorporating the explicitly approved decisions.
-
-### Core Decisions Retained
-- **Next.js 15 App Router** with **Server Actions** (no `/api/` routes).
-- **Supabase** for Auth and PostgreSQL, managed via a single `schema.sql`.
-- **Gemini Flash** for fast AI inference.
-- **SVG-based visualizer** ensuring a lightweight repository (<10MB) over 3D models.
-- **Dedicated `services/` layer** retained to decouple AI and business logic from UI components.
-- Specific domain-driven component categorization (`ui`, `carbon`, `ecosystem`, `insights`, `accessibility`).
+This document describes the final architecture of the CarbonCanvas MVP as **actually implemented**. It serves as the ground-truth reference for contributors, combining the initial design decisions with the Architectural Decision Records (ADRs) that were confirmed or amended during development.
 
 ---
 
-## 1. Final Folder Structure
+## 1. Core Principles
+
+- **Next.js App Router** with **Server Actions** (no `/api/` routes).
+- **Supabase** for Auth and PostgreSQL, managed via a single `supabase/schema.sql`.
+- **Gemini Flash 2.0** for AI narrative generation — with a deterministic fallback so the app never breaks when the API key is absent.
+- **SVG-based ecosystem visualizer** — lightweight canvas rendered entirely in React/SVG, no 3D dependencies.
+- **Dedicated `services/` layer** — all business logic is pure functions decoupled from React and the database.
+- **Tailwind CSS v4** — CSS-first configuration via `src/app/globals.css`; no `tailwind.config.ts` file.
+
+---
+
+## 2. Final Folder Structure
 
 ```text
-carbon-canvas/
-├── docs/                               # Project documentation & specs
-├── tests/                              # Global test configs & mocks
-│   ├── setup.ts                        # Vitest environment setup
-│   └── mocks/                          # Mock Gemini/Supabase responses
+CarbonCanvas/
+├── docs/                               # Architecture Decision Records & specs
+├── tests/                              # Vitest unit tests
+│   ├── carbon-calculator.test.ts
+│   └── ecosystem-engine.test.ts
 ├── supabase/
-│   └── schema.sql                      # Single unified reference DB schema
+│   └── schema.sql                      # Unified reference DB schema + RLS
 ├── src/
-│   ├── app/                            # Next.js 15 App Router
-│   │   ├── actions.ts                  # Server Actions (Gemini & DB mutations)
-│   │   ├── login/                      # Authentication routes
-│   │   │   ├── page.tsx
-│   │   │   └── page.test.tsx
-│   │   ├── dashboard/                  # Core Dashboard Route
-│   │   │   ├── page.tsx
-│   │   │   └── page.test.tsx
-│   │   ├── layout.tsx                  # Global App Layout & Context Providers
-│   │   ├── page.tsx                    # Landing Page
-│   │   └── globals.css                 # Tailwind directives
+│   ├── app/                            # Next.js App Router
+│   │   ├── actions/                    # Server Actions (split by domain)
+│   │   │   ├── auth.ts                 # Sign-up / sign-in / sign-out
+│   │   │   ├── carbon.ts               # Daily carbon entry + ecosystem snapshot
+│   │   │   └── simulator.ts            # AI what-if narrative generation
+│   │   ├── dashboard/                  # Protected dashboard route
+│   │   │   └── page.tsx
+│   │   ├── login/                      # Auth routes
+│   │   │   └── page.tsx
+│   │   ├── signup/
+│   │   │   └── page.tsx
+│   │   ├── simulator/                  # Impact Simulator route
+│   │   │   └── page.tsx
+│   │   ├── layout.tsx                  # Global App Layout
+│   │   ├── page.tsx                    # Public Landing Page
+│   │   └── globals.css                 # Tailwind v4 directives + design tokens
 │   │
-│   ├── components/                     # Categorized React Components
-│   │   ├── ui/                         # shadcn/ui primitives (button, card, dialog)
-│   │   ├── carbon/                     # Carbon tracking UI
-│   │   │   ├── activity-logger.tsx
-│   │   │   └── score-display.tsx
-│   │   ├── ecosystem/                  # SVG-based visualizers
-│   │   │   ├── ecosystem-canvas.tsx
-│   │   │   ├── forest-svg.tsx
-│   │   │   └── water-svg.tsx
-│   │   ├── insights/                   # AI Storytelling UI
-│   │   │   ├── narrative-card.tsx
-│   │   │   └── actionable-tip.tsx
+│   ├── components/                     # Domain-driven React Components
+│   │   ├── ui/                         # shadcn/ui primitives (button, card, progress…)
+│   │   ├── auth/                       # Authentication forms
+│   │   │   ├── auth-card.tsx
+│   │   │   ├── login-form.tsx
+│   │   │   └── signup-form.tsx
+│   │   ├── carbon/                     # Carbon tracking & simulator UI
+│   │   │   ├── carbon-entry-form.tsx   # Daily activity logger form
+│   │   │   ├── simulator-client.tsx    # Client-side Impact Simulator shell
+│   │   │   ├── simulator-narrative-panel.tsx  # AI narrative display
+│   │   │   └── streak-card.tsx         # Current & longest streak display
+│   │   ├── ecosystem/                  # SVG visualizers & reflection panels
+│   │   │   ├── ecosystem-canvas.tsx    # Primary SVG ecosystem visualization
+│   │   │   ├── ecosystem-comparison.tsx # Side-by-side current vs. projected view
+│   │   │   ├── ecosystem-reflection-panel.tsx # Deterministic narrative display
+│   │   │   └── ecosystem-status-badges.tsx   # Health tier badge grid
 │   │   └── accessibility/              # A11y helpers
-│   │       ├── skip-to-content.tsx
-│   │       └── high-contrast-toggle.tsx
+│   │       └── skip-to-content.tsx
 │   │
 │   ├── lib/                            # Third-Party Integrations
-│   │   ├── supabase.ts                 # Supabase client instantiation
-│   │   └── gemini.ts                   # Gemini SDK initialization
+│   │   ├── supabase/
+│   │   │   ├── client.ts               # Browser Supabase client
+│   │   │   ├── server.ts               # Server-side Supabase client
+│   │   │   ├── middleware.ts           # Session refresh middleware helper
+│   │   │   └── env.ts                  # Environment variable validation
+│   │   └── utils.ts                    # Class merging utility (clsx + tailwind-merge)
 │   │
-│   ├── services/                       # Dedicated Business Logic
-│   │   ├── carbon-calculator.ts        # Pure calculation logic (framework agnostic)
-│   │   ├── narrative-engine.ts         # Generates awareness stories via Gemini
-│   │   └── impact-simulator.ts         # What-if scenario mathematical engine
+│   ├── services/                       # Core Domain Logic (pure functions only)
+│   │   ├── carbon-calculator.ts        # Emission factor math (kg CO₂e per activity)
+│   │   ├── ecosystem-engine.ts         # Carbon score → ecosystem health metrics
+│   │   ├── ecosystem-reflection.ts     # Deterministic narrative generation for ecosystem
+│   │   ├── health-tier.ts              # 0–100 value → tier label + WCAG-compliant styles
+│   │   ├── impact-simulator.ts         # What-if scenario engine (multi-scenario support)
+│   │   ├── simulator-narrative.ts      # Gemini Flash AI narrative generation + fallback
+│   │   └── streak-calculator.ts        # Consecutive logging streak calculator
 │   │
 │   ├── types/
-│   │   └── index.ts                    # Consolidated shared interfaces
+│   │   └── index.ts                    # Shared TypeScript interfaces (Profile, DailyEntry…)
 │   │
-│   └── utils/
-│       └── cn.ts                       # Class merging utility for Tailwind
+│   └── proxy.ts                        # Next.js middleware proxy entry point
 │
-├── tailwind.config.ts                  # Tailwind configuration
-├── tsconfig.json                       # TypeScript config and path mapping
-├── vitest.config.ts                    # Vitest fast testing configuration
+├── tsconfig.json
+├── vitest.config.ts
 └── package.json
 ```
 
 ---
 
-## 2. Final Module Responsibilities
+## 3. Module Responsibilities
 
 | Module / Path | Execution Tier | Core Responsibility |
 | :--- | :--- | :--- |
 | **`src/app/`** | Server & Client | Handles layout, routing, and **Server Actions**. Routes coordinate user requests and invoke the services layer. |
-| **`src/components/*`** | Client | Strictly domain-driven visual layers. Divided into generic `ui`, tracking `carbon`, SVG `ecosystem`, AI `insights`, and `accessibility`. |
-| **`src/services/`** | Server | The mathematical and intellectual core. Contains pure functions that are heavily unit-tested without needing a DOM or React context. |
-| **`src/lib/`** | Server & Client | Initializes external SDKs. Handles connection pooling, API keys, and offline mock-mode toggles. |
-| **`tests/`** | Build/CI | Fast Vitest unit/integration testing ensuring code quality. Bypasses heavy E2E frameworks for speed. |
+| **`src/app/actions/auth.ts`** | Server | Sign-up, sign-in, and sign-out via Supabase Auth. |
+| **`src/app/actions/carbon.ts`** | Server | Validates, calculates, and persists daily carbon entries + ecosystem snapshots. |
+| **`src/app/actions/simulator.ts`** | Server | Generates AI what-if narratives; never writes to the database. |
+| **`src/components/*`** | Client | Strictly domain-driven visual layers: `auth`, `carbon`, `ecosystem`, `accessibility`, `ui`. |
+| **`src/services/`** | Server | Mathematical and narrative core. All pure functions — no React, no Supabase, no side effects. |
+| **`src/lib/supabase/`** | Server & Client | Initializes Supabase clients for browser, server, and middleware contexts. |
+| **`tests/`** | Build/CI | Fast Vitest unit tests for all pure service functions. |
 
 ### Service Layer Breakdown
-* **`carbon-calculator.ts`**: Pure math. Translates raw daily activity inputs into standardized emission scores.
-* **`narrative-engine.ts`**: The core of "awareness over tracking". Consumes scores and user history, interfaces with Gemini, and outputs compelling, personalized environmental stories.
-* **`impact-simulator.ts`**: Processes "what-if" parameters. Feeds theoretical changes into the carbon calculator to predict future ecosystem states.
+
+| Service | Responsibility |
+|---|---|
+| `carbon-calculator.ts` | Translates raw activity inputs into standardised kg CO₂e emission scores using fixed emission factors. |
+| `ecosystem-engine.ts` | Converts a daily carbon score into a set of four ecosystem health values (0–100) via a tiered lookup table. |
+| `ecosystem-reflection.ts` | Generates deterministic, cross-dimensional narrative sentences from four health metrics — no AI, no randomness. |
+| `health-tier.ts` | Maps a 0–100 health value to a `HealthTierLabel` (`At Risk`, `Recovering`, `Healthy`, `Flourishing`) and WCAG-AA-compliant Tailwind style tokens. |
+| `impact-simulator.ts` | Accepts a user's `DailyEntry` and a set of hypothetical `SimulationChanges`, computes current vs. projected scores, and returns a full `SimulationResult` including ecosystem deltas. |
+| `simulator-narrative.ts` | Calls Gemini Flash 2.0 to generate a three-part (Observation, Implication, Suggested Action) narrative for a `SimulationResult`. Falls back to deterministic templates on failure. |
+| `streak-calculator.ts` | Computes current and longest consecutive logging streaks from an array of `YYYY-MM-DD` date strings. |
 
 ---
 
-## 3. Files That Should Exist on Day 1
+## 4. Routes
 
-To kickstart development with high velocity, the following foundational files must be established immediately:
+| Route | Protection | Description |
+|---|---|---|
+| `/` | Public | Marketing landing page |
+| `/login` | Public (redirects to `/dashboard` if authenticated) | Supabase email/password sign-in |
+| `/signup` | Public (redirects to `/dashboard` if authenticated) | New account registration |
+| `/dashboard` | Protected (redirects to `/login` if unauthenticated) | Main user dashboard |
+| `/simulator` | Protected (redirects to `/login` if unauthenticated) | Impact Simulator |
 
-* **Configuration & Scaffolding**:
-  * `package.json`, `tsconfig.json`, `tailwind.config.ts`, `vitest.config.ts`
-  * `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css`
-  * `src/utils/cn.ts`
-* **Data & Types**:
-  * `supabase/schema.sql` (Define the DB tables right away)
-  * `src/types/index.ts` (Define `CarbonLog`, `EcosystemState` interfaces)
-* **Clients & Logic Stubbing**:
-  * `src/lib/supabase.ts`, `src/lib/gemini.ts`
-  * `src/services/carbon-calculator.ts`, `src/services/narrative-engine.ts` (Even if just returning mock data initially)
-* **Core UI Primitives**:
-  * `src/components/ui/button.tsx`, `src/components/ui/card.tsx`, `src/components/ui/input.tsx`
-
----
-
-## 4. Files Deferred to Later Phases
-
-To ensure the core MVP is fully polished within 10 days, these files and features will be implemented sequentially in later phases:
-
-* **Phase 2 (Days 5-7): Impact Simulator**
-  * `src/app/simulator/page.tsx`
-  * `src/services/impact-simulator.ts`
-  * Wait until the base carbon tracking and dashboard are solid before allowing users to manipulate hypothetical futures.
-* **Phase 3 (Days 8-10): Advanced Visuals & A11y Controls**
-  * `src/components/ecosystem/forest-svg.tsx`, `water-svg.tsx` (Start with a unified, simpler `ecosystem-canvas.tsx` on Day 1, componentize the SVGs later if time permits).
-  * `src/components/accessibility/high-contrast-toggle.tsx` (Rely on native OS-level high contrast media queries on Day 1; add explicit UI toggles only if extra time remains).
+Route protection is enforced at two layers:
+1. **Middleware** (`src/proxy.ts` → `src/lib/supabase/middleware.ts`): Redirects on every request before the page renders.
+2. **Page-level auth guard**: Each protected page calls `supabase.auth.getUser()` and redirects if the session is invalid.
 
 ---
 
@@ -275,3 +285,26 @@ names.
 - If generated types are adopted, the manual `DailyEntry`, `EcosystemState`, and
   `Insight` interfaces in `src/types/index.ts` should be replaced with the generated
   versions.
+
+---
+
+### ADR-003 — Gemini Used Directly in Services, Not via a Shared `lib/gemini.ts`
+
+**Status:** Accepted  
+**Date:** 2026-06-15  
+
+#### Decision
+
+The `GoogleGenerativeAI` client is instantiated directly inside `src/services/simulator-narrative.ts` rather than in a shared `src/lib/gemini.ts` module.
+
+#### Rationale
+
+- Only one service currently requires Gemini access.
+- Centralising SDK initialisation adds unnecessary indirection for a single consumer.
+- The service's fallback logic (template narratives when no key is present) is tightly coupled to the client instantiation — keeping them co-located avoids split logic.
+- If a second Gemini consumer is added, a shared `src/lib/gemini.ts` should be extracted at that point.
+
+#### Consequences
+
+- There is no `src/lib/gemini.ts` file. References to it in early architecture drafts are superseded by this ADR.
+- The `GEMINI_API_KEY` env var is read directly by `simulator-narrative.ts` via `process.env.GEMINI_API_KEY`.

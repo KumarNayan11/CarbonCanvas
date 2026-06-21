@@ -22,7 +22,8 @@
 ## AI Rules
 
 - Gemini Flash only
-- Narrative generation handled by narrative-engine.ts
+- Ecosystem narrative generation handled by `ecosystem-reflection.ts` (deterministic, no API key required)
+- Simulator AI narratives handled by `simulator-narrative.ts` (Gemini Flash 2.0; falls back to deterministic templates)
 
 ## Repository Constraints
 
