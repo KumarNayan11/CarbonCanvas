@@ -6,6 +6,14 @@ Built for the **PromptWars Challenge 3**, CarbonCanvas goes beyond numbers by vi
 
 ---
 
+## 📸 Screenshots
+
+| Dashboard Overview | Ecosystem Canvas | Ecosystem Snapshot | Impact Simulator | AI Narratives |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="./docs/Screenshots/dashboard-overview.png" width="400" alt="Dashboard Overview"> | <img src="./docs/Screenshots/ecosystem.png" width="400" alt="Ecosystem Canvas"> | <img src="./docs/Screenshots/snapshot.png" width="400" alt="Ecosystem Snapshot"> | <img src="./docs/Screenshots/Impact_Simulator.png" width="400" alt="Impact Simulator"> | <img src="./docs/Screenshots/Ai-what-if.png" width="400" alt="AI Narratives"> |
+
+---
+
 ## 🎯 Problem Statement
 
 Many individuals are unaware of the environmental impact of their daily activities. Existing carbon tracking solutions often present data in a numerical format that fails to create emotional engagement or lasting behavioural change. CarbonCanvas solves this by turning carbon data into a living digital ecosystem — one that visibly flourishes or degrades based on your choices, creating a visceral, personal connection to sustainability.
