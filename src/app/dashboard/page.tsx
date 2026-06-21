@@ -24,6 +24,7 @@ import { EcosystemCanvas } from '@/components/ecosystem/ecosystem-canvas'
 import { EcosystemStatusBadges } from '@/components/ecosystem/ecosystem-status-badges'
 import { EcosystemReflectionPanel } from '@/components/ecosystem/ecosystem-reflection-panel'
 import { ProgressSection } from '@/components/dashboard/progress-section'
+import { AchievementsSection } from '@/components/dashboard/achievements-section'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -531,6 +532,23 @@ export default async function DashboardPage() {
             entries={allEntries} 
             ecosystemStates={recentEcosystems}
             firstEcosystem={firstEcosystem}
+          />
+        </section>
+
+        {/* ── 6. Achievements & Milestones ────────────────── */}
+        <section aria-labelledby="achievements-heading">
+          <div className="mb-8 mt-12 border-t border-emerald-100 dark:border-emerald-900/30 pt-12">
+            <h2 id="achievements-heading" className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              Achievements & Milestones
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Track your sustainability journey and unlock rewards based on your impact.
+            </p>
+          </div>
+          <AchievementsSection 
+            totalEntries={allEntries.length}
+            currentStreak={streaks.currentStreak}
+            latestEcosystem={latestEcosystem}
           />
         </section>
 
