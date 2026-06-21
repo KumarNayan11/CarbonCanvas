@@ -4,10 +4,6 @@ import Link from 'next/link'
 import {
   Leaf,
   LogOut,
-  User,
-  Mail,
-  Calendar,
-  Shield,
   TreePine,
   Droplets,
   Wind,
@@ -21,13 +17,14 @@ import { createServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/actions/auth'
 import { calculateOverallHealth } from '@/services/ecosystem-engine'
 import { calculateStreaks } from '@/services/streak-calculator'
-import { CarbonEntryForm } from '@/components/carbon/carbon-entry-form'
+import { GuidedEntryDialog } from '@/components/carbon/guided-entry-dialog'
 import { StreakCard } from '@/components/carbon/streak-card'
+import { OnboardingCard } from '@/components/dashboard/onboarding-card'
 import { EcosystemCanvas } from '@/components/ecosystem/ecosystem-canvas'
 import { EcosystemStatusBadges } from '@/components/ecosystem/ecosystem-status-badges'
 import { EcosystemReflectionPanel } from '@/components/ecosystem/ecosystem-reflection-panel'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import type { Profile, DailyEntry, EcosystemState } from '@/types'
 
@@ -253,6 +250,10 @@ export default async function DashboardPage() {
 
   const hasData = latestEntry !== null
 
+  // Check if today's entry already exists (for guided dialog messaging)
+  const today = new Date().toISOString().split('T')[0]
+  const hasTodayEntry = latestEntry?.date === today
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/20 dark:via-teal-950/15 dark:to-cyan-950/20">
 
@@ -275,6 +276,22 @@ export default async function DashboardPage() {
 
             {/* Navigation actions — wrapped in a <nav> so it appears in landmark navigation */}
             <nav aria-label="Account actions" className="flex items-center gap-3">
+              <GuidedEntryDialog
+                hasTodayEntry={hasTodayEntry}
+                todayEntry={hasTodayEntry ? {
+                  transport_type: latestEntry!.transport_type,
+                  transport_distance_km: latestEntry!.transport_distance_km,
+                  food_type: latestEntry!.food_type,
+                  energy_usage_kwh: latestEntry!.energy_usage_kwh,
+                  shopping_items: latestEntry!.shopping_items,
+                } : undefined}
+                currentEcosystem={latestEcosystem ? {
+                  forestHealth: latestEcosystem.forest_health,
+                  waterQuality: latestEcosystem.water_quality,
+                  airQuality: latestEcosystem.air_quality,
+                  biodiversity: latestEcosystem.biodiversity,
+                } : undefined}
+              />
               <Button
                 asChild
                 variant="ghost"
@@ -310,77 +327,20 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
             {hasData ? `Welcome back, ${firstName} 🌿` : `Welcome to CarbonCanvas, ${firstName}! 🌱`}
           </h1>
-          <p className="mt-1 text-muted-foreground">
-            {hasData
-              ? 'Here\'s your latest environmental snapshot. Log today\'s activity below.'
-              : 'You\'re starting something meaningful. Fill in today\'s activity below and watch your personal ecosystem come to life.'}
-          </p>
+          {hasData && (
+            <p className="mt-1 text-muted-foreground">
+              Here's your latest environmental snapshot.
+            </p>
+          )}
         </div>
 
-        {/* ── Main grid: form + profile ───────────────────── */}
-        <div className="grid gap-8 lg:grid-cols-3">
+        {!hasData && <OnboardingCard />}
 
-          {/* Carbon Entry Form — spans 2 cols on large screens */}
-          <div className="lg:col-span-2">
-            <CarbonEntryForm />
-          </div>
-
-          {/* Profile card */}
-          <Card className="border-emerald-100 dark:border-emerald-900/40 shadow-md h-fit">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <User className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                Your Profile
-              </CardTitle>
-              <CardDescription>Account details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Avatar — decorative initial; name is announced by the adjacent <p> */}
-              <div className="flex items-center gap-4">
-                <div
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-lg font-bold shadow-md shrink-0"
-                  aria-hidden="true"
-                >
-                  {displayName.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p
-                    className="font-semibold text-gray-900 dark:text-gray-100 truncate"
-                    aria-label={`Logged in as ${displayName}`}
-                  >
-                    {displayName}
-                  </p>
-                  <p className="text-sm text-muted-foreground">CarbonCanvas Member</p>
-                </div>
-              </div>
-
-              <div className="space-y-2 border-t border-border pt-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
-                  <span className="text-muted-foreground truncate">
-                    {profile?.email ?? user.email}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
-                  <span className="text-muted-foreground">Joined {joinedAt}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Shield className="h-3.5 w-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
-                  <span className="text-emerald-700 dark:text-emerald-400 font-medium">
-                    Session verified
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ── Ecosystem visualization ─────────────────────── */}
+        {/* ── 1. Ecosystem Hero ─────────────────────────────── */}
         <section aria-labelledby="ecosystem-heading">
           <h2
             id="ecosystem-heading"
-            className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100"
+            className="mb-4 text-xl font-bold text-gray-900 dark:text-gray-100"
           >
             Your Ecosystem
           </h2>
@@ -395,17 +355,7 @@ export default async function DashboardPage() {
                     airQuality={latestEcosystem.air_quality}
                     biodiversity={latestEcosystem.biodiversity}
                   />
-                  {/*
-                   * Status badges + reflection panel sit inside the same Card,
-                   * making the whole block one cohesive ecosystem story.
-                   */}
                   <EcosystemStatusBadges
-                    forestHealth={latestEcosystem.forest_health}
-                    waterQuality={latestEcosystem.water_quality}
-                    airQuality={latestEcosystem.air_quality}
-                    biodiversity={latestEcosystem.biodiversity}
-                  />
-                  <EcosystemReflectionPanel
                     forestHealth={latestEcosystem.forest_health}
                     waterQuality={latestEcosystem.water_quality}
                     airQuality={latestEcosystem.air_quality}
@@ -413,67 +363,30 @@ export default async function DashboardPage() {
                   />
                 </>
               ) : (
-                /*
-                 * Ecosystem empty state — shown until the user's first entry
-                 * generates an ecosystem_states row.
-                 *
-                 * Design rationale:
-                 *  - Numbered steps remove ambiguity: the user knows exactly
-                 *    what to do and what will happen next.
-                 *  - The Sprout icon reinforces the living metaphor.
-                 *  - Accessible: the list is semantic (<ol>) and each step is
-                 *    a plain sentence that makes sense when read aloud.
-                 */
                 <div
                   className="flex flex-col items-center gap-6 px-8 py-14 text-center"
                   role="region"
                   aria-label="Ecosystem not yet generated"
                 >
-                  {/* Illustration area */}
                   <div className="relative flex items-center justify-center">
                     <div className="h-20 w-20 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-950/60 dark:to-teal-950/60 flex items-center justify-center shadow-inner">
                       <Sprout className="h-10 w-10 text-emerald-500" aria-hidden="true" />
                     </div>
-                    {/* Decorative ring */}
                     <div className="absolute h-28 w-28 rounded-full border-2 border-dashed border-emerald-200 dark:border-emerald-800/60" aria-hidden="true" />
                   </div>
 
-                  {/* Heading + description */}
                   <div className="space-y-1.5 max-w-sm">
                     <p className="font-semibold text-gray-900 dark:text-gray-100 text-base">
-                      Your ecosystem is waiting
+                      Your ecosystem unlocks here
                     </p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Every carbon entry you log shapes a living world unique to your choices.
+                      Once you log your first entry, this canvas will transform into a living representation of your carbon footprint.
                     </p>
                   </div>
 
-                  {/* 3-step micro-guide */}
-                  <ol
-                    className="text-left space-y-3 text-sm w-full max-w-xs"
-                    aria-label="How to generate your ecosystem"
-                  >
-                    {[
-                      { step: '1', text: 'Fill in today\'s transport, food, energy and shopping above.' },
-                      { step: '2', text: 'Submit the form — your carbon score is calculated instantly.' },
-                      { step: '3', text: 'Return here to see your ecosystem grow and reflect your impact.' },
-                    ].map(({ step, text }) => (
-                      <li key={step} className="flex items-start gap-3">
-                        <span
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-xs font-bold text-emerald-700 dark:text-emerald-400"
-                          aria-hidden="true"
-                        >
-                          {step}
-                        </span>
-                        <span className="text-muted-foreground pt-0.5 leading-snug">{text}</span>
-                      </li>
-                    ))}
-                  </ol>
-
-                  {/* Arrow pointing up toward the form */}
-                  <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    <ArrowRight className="h-3.5 w-3.5 rotate-[-90deg]" aria-hidden="true" />
-                    Start with the form above
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    <ArrowRight className="h-4 w-4 rotate-[-90deg]" aria-hidden="true" />
+                    Use the green button in the header to log your first entry
                   </p>
                 </div>
               )}
@@ -481,32 +394,16 @@ export default async function DashboardPage() {
           </Card>
         </section>
 
-        {/* ── Metrics section ─────────────────────────────── */}
-        {/*
-         * aria-live="polite" ensures screen readers announce metric updates
-         * after a successful form submission without interrupting the user.
-         * WCAG 2.1 SC 4.1.3 — Status Messages (Level AA)
-         */}
+        {/* ── 2. Metrics section ────────────────────────────── */}
         <section aria-labelledby="metrics-heading" aria-live="polite" aria-atomic="false">
           <h2
             id="metrics-heading"
             className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100"
           >
-            Today&apos;s snapshot
+            Ecosystem Health Summary
           </h2>
 
-          {/* Streak card — spans full row at top of metrics grid */}
-          <div className="mb-4">
-            <StreakCard
-              currentStreak={streaks.currentStreak}
-              longestStreak={streaks.longestStreak}
-              hasEntries={entryDates.length > 0}
-            />
-          </div>
-
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-            {/* Carbon Score */}
             <MetricCard
               label="Carbon score"
               value={latestEntry?.carbon_score ?? 0}
@@ -516,8 +413,6 @@ export default async function DashboardPage() {
               icon={<Flame className="h-4 w-4 text-orange-500" />}
               emptyHint="Your daily kg CO₂e total appears here after your first entry."
             />
-
-            {/* Overall Health */}
             <MetricCard
               label="Overall health"
               value={overallHealth ?? 0}
@@ -529,8 +424,6 @@ export default async function DashboardPage() {
               progressClass="[&_[data-slot=progress-indicator]]:bg-emerald-500"
               emptyHint="Your composite ecosystem health score will appear here."
             />
-
-            {/* Forest Health */}
             <MetricCard
               label="Forest health"
               value={latestEcosystem?.forest_health ?? 0}
@@ -542,8 +435,6 @@ export default async function DashboardPage() {
               progressClass="[&_[data-slot=progress-indicator]]:bg-green-500"
               emptyHint="Low-carbon choices grow a denser, greener forest."
             />
-
-            {/* Water Quality */}
             <MetricCard
               label="Water quality"
               value={latestEcosystem?.water_quality ?? 0}
@@ -555,8 +446,6 @@ export default async function DashboardPage() {
               progressClass="[&_[data-slot=progress-indicator]]:bg-blue-500"
               emptyHint="Cleaner energy and transport keep rivers healthy."
             />
-
-            {/* Air Quality */}
             <MetricCard
               label="Air quality"
               value={latestEcosystem?.air_quality ?? 0}
@@ -568,8 +457,6 @@ export default async function DashboardPage() {
               progressClass="[&_[data-slot=progress-indicator]]:bg-sky-500"
               emptyHint="Less driving and heating means cleaner, clearer skies."
             />
-
-            {/* Biodiversity */}
             <MetricCard
               label="Biodiversity"
               value={latestEcosystem?.biodiversity ?? 0}
@@ -581,9 +468,41 @@ export default async function DashboardPage() {
               progressClass="[&_[data-slot=progress-indicator]]:bg-teal-500"
               emptyHint="Plant-rich diets and fewer purchases support more wildlife."
             />
-
           </div>
         </section>
+
+        {/* ── 3. AI Reflection / Insights ─────────────────── */}
+        {latestEcosystem && (
+          <section aria-labelledby="reflection-heading">
+            <h2 id="reflection-heading" className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+              AI Insights
+            </h2>
+            <Card className="border-emerald-100 dark:border-emerald-900/40 shadow-md overflow-hidden">
+              <CardContent className="p-0">
+                <EcosystemReflectionPanel
+                  forestHealth={latestEcosystem.forest_health}
+                  waterQuality={latestEcosystem.water_quality}
+                  airQuality={latestEcosystem.air_quality}
+                  biodiversity={latestEcosystem.biodiversity}
+                />
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
+        {/* ── 4. Sustainability Streak ────────────────────── */}
+        <section aria-labelledby="streak-heading">
+          <h2 id="streak-heading" className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Sustainability Streak
+          </h2>
+          <StreakCard
+            currentStreak={streaks.currentStreak}
+            longestStreak={streaks.longestStreak}
+            hasEntries={entryDates.length > 0}
+          />
+        </section>
+
+
 
       </main>
     </div>

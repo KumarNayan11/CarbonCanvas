@@ -20,8 +20,9 @@
  * - Isolated from dashboard insight generation.
  */
 
-import { Eye, Leaf, Lightbulb, Sparkles, AlertCircle } from 'lucide-react'
+import { Eye, Leaf, Lightbulb, Sparkles, AlertCircle, RotateCcw } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import type { SimulatorNarrative } from '@/services/simulator-narrative'
 
 // ============================================================
@@ -71,6 +72,36 @@ export function SimulatorNarrativeSkeleton() {
               </div>
             </div>
           ))}
+        </CardContent>
+      </Card>
+    </section>
+  )
+}
+
+/**
+ * Static placeholder shown before the user makes any simulation changes.
+ * Prevents layout shift (CLS) and explains the feature.
+ */
+export function SimulatorNarrativeIdle() {
+  return (
+    <section aria-labelledby="simulator-narrative-idle-heading">
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles className="h-4 w-4 text-emerald-500/50" aria-hidden="true" />
+        <h3
+          id="simulator-narrative-idle-heading"
+          className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+        >
+          AI What-If Narrative
+        </h3>
+      </div>
+      <Card className="border-dashed border-emerald-100 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/10 shadow-none">
+        <CardContent className="p-8 text-center space-y-2">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            Awaiting scenario changes
+          </p>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+            Adjust the simulation parameters above to generate a personalized what-if narrative using Gemini AI.
+          </p>
         </CardContent>
       </Card>
     </section>
@@ -198,7 +229,7 @@ export function SimulatorNarrativePanel({ narrative }: SimulatorNarrativePanelPr
  * Minimal error state shown if the Server Action itself fails
  * (distinct from Gemini failures, which are handled internally).
  */
-export function SimulatorNarrativeError() {
+export function SimulatorNarrativeError({ onRetry }: { onRetry: () => void }) {
   return (
     <section aria-labelledby="simulator-narrative-error-heading">
       <div className="flex items-center gap-2 mb-3">
@@ -219,6 +250,15 @@ export function SimulatorNarrativeError() {
           The narrative could not be generated right now. Try adjusting the
           simulation parameters to trigger a fresh analysis.
         </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRetry}
+          className="mt-2"
+        >
+          <RotateCcw className="mr-2 h-3 w-3" />
+          Try Again
+        </Button>
       </div>
     </section>
   )

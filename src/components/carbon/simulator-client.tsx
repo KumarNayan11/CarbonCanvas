@@ -11,6 +11,7 @@ import {
   SimulatorNarrativePanel,
   SimulatorNarrativeSkeleton,
   SimulatorNarrativeError,
+  SimulatorNarrativeIdle,
 } from '@/components/carbon/simulator-narrative-panel'
 import { generateSimulationNarrative } from '@/app/actions/simulator'
 import type { DailyEntry } from '@/types'
@@ -30,19 +31,15 @@ function MetricProjection({
   projected,
   improvement,
   unit = '',
-  invertColors = false,
 }: {
   label: string
   current: number
   projected: number
   improvement: number
   unit?: string
-  invertColors?: boolean
 }) {
-  // If invertColors is true, lower is better (e.g., carbon score).
-  // If invertColors is false, higher is better (e.g., forest health).
-  const isBetter = invertColors ? improvement > 0 : improvement > 0
-  const isWorse = invertColors ? improvement < 0 : improvement < 0
+  const isBetter = improvement > 0
+  const isWorse = improvement < 0
   const isNeutral = improvement === 0
 
   let colorClass = 'text-muted-foreground'
@@ -122,6 +119,9 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
   // Debounce ref — we wait 900ms after the last input change before calling
   // the Server Action, so rapid typing doesn't hammer the Gemini API.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  
+  // Track if the user has actually interacted with the form
+  const hasInteracted = useRef(false)
 
   // Use useMemo to compute the simulation result whenever inputs change.
   // This keeps the UI completely reactive without needing a "Run" button.
@@ -139,40 +139,46 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
   }, [initialEntry, transportType, transportDistanceKm, foodType, energyUsageKwh, shoppingItems])
 
   // ── Narrative generation ─────────────────────────────────
+
+  const triggerNarrative = () => {
+    startTransition(async () => {
+      try {
+        const result = await generateSimulationNarrative({
+          currentCarbonScore: simulation.currentCarbonScore,
+          projectedCarbonScore: simulation.projectedCarbonScore,
+          carbonReduction: simulation.carbonReduction,
+          reductionPercentage: simulation.reductionPercentage,
+          ecosystemImprovement: simulation.ecosystemImprovement,
+        })
+
+        if (result.success) {
+          setNarrativeState({ status: 'ready', narrative: result.narrative })
+        } else {
+          setNarrativeState({ status: 'error' })
+        }
+      } catch {
+        setNarrativeState({ status: 'error' })
+      }
+    })
+  }
+
   // Trigger a debounced Server Action call whenever the simulation changes.
-  // Uses useEffect so the narrative update is always async and never blocks
-  // the synchronous simulation rendering.
-  //
-  // The loading state is set inside the setTimeout callback (not synchronously)
-  // to comply with the react-hooks/set-state-in-effect lint rule.
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
     }
 
+    // Skip generating narrative on initial mount
+    if (!hasInteracted.current) {
+      hasInteracted.current = true
+      return
+    }
+
+    // Set loading immediately to prevent stale narratives during debounce
+    setNarrativeState({ status: 'loading' })
+
     debounceRef.current = setTimeout(() => {
-      // Mark as loading only when the debounce period has elapsed
-      setNarrativeState({ status: 'loading' })
-
-      startTransition(async () => {
-        try {
-          const result = await generateSimulationNarrative({
-            currentCarbonScore: simulation.currentCarbonScore,
-            projectedCarbonScore: simulation.projectedCarbonScore,
-            carbonReduction: simulation.carbonReduction,
-            reductionPercentage: simulation.reductionPercentage,
-            ecosystemImprovement: simulation.ecosystemImprovement,
-          })
-
-          if (result.success) {
-            setNarrativeState({ status: 'ready', narrative: result.narrative })
-          } else {
-            setNarrativeState({ status: 'error' })
-          }
-        } catch {
-          setNarrativeState({ status: 'error' })
-        }
-      })
+      triggerNarrative()
     }, 900)
 
     return () => {
@@ -310,12 +316,17 @@ export function SimulatorClient({ initialEntry }: { initialEntry: DailyEntry }) 
        * to screen readers without interrupting the user.
        */}
       <div aria-live="polite" aria-atomic="true">
+        {narrativeState.status === 'idle' && <SimulatorNarrativeIdle />}
         {narrativeState.status === 'loading' && <SimulatorNarrativeSkeleton />}
         {narrativeState.status === 'ready' && (
           <SimulatorNarrativePanel narrative={narrativeState.narrative} />
         )}
-        {narrativeState.status === 'error' && <SimulatorNarrativeError />}
-        {/* 'idle' renders nothing — panel appears after first simulation change */}
+        {narrativeState.status === 'error' && (
+          <SimulatorNarrativeError onRetry={() => {
+            setNarrativeState({ status: 'loading' })
+            triggerNarrative()
+          }} />
+        )}
       </div>
 
       {/* ── 4. Numerical Metrics ───────────────────────────── */}

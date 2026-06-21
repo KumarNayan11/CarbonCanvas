@@ -98,20 +98,20 @@ export default async function SimulatorPage() {
         {/* ── Content ─────────────────────────────────────── */}
         {!hasData ? (
           <div
-            className="rounded-xl border border-dashed border-emerald-200 dark:border-emerald-800 bg-white/50 dark:bg-black/20 p-12 text-center"
+            className="rounded-xl border border-dashed border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/30 dark:bg-emerald-950/10 p-12 text-center shadow-sm"
             role="region"
             aria-label="No data available for simulation"
           >
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 mb-4">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 mb-4 shadow-inner">
               <FlaskConical className="h-8 w-8 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              We need a starting point
+              Simulator unlocked after first entry
             </h2>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              The simulator requires at least one logged daily entry to establish your baseline carbon footprint. Log your first activity to unlock the simulator!
+              We need a baseline to compare against. Return to the dashboard and log your first carbon activity to unlock "what-if" scenarios!
             </p>
-            <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 font-medium shadow-sm transition-all duration-200">
               <Link href="/dashboard" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 Return to Dashboard

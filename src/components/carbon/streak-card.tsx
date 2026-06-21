@@ -163,30 +163,16 @@ export function StreakCard({ currentStreak, longestStreak, hasEntries }: StreakC
 
             <div className="space-y-1 max-w-[20ch]">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Your streak starts today
+                Build consistency
               </p>
               <p className="text-xs text-muted-foreground leading-snug">
-                Log an entry each day to build a streak and track your consistency.
+                Log entries over consecutive days to grow your streak.
               </p>
             </div>
 
-            {/* 2-step guide */}
-            <ol className="text-left space-y-2 text-xs w-full max-w-[22ch]" aria-label="How to start a streak">
-              {[
-                { step: '1', text: 'Log today\'s carbon activity above.' },
-                { step: '2', text: 'Come back tomorrow — your streak begins.' },
-              ].map(({ step, text }) => (
-                <li key={step} className="flex items-start gap-2.5">
-                  <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40 text-[10px] font-bold text-amber-700 dark:text-amber-400"
-                    aria-hidden="true"
-                  >
-                    {step}
-                  </span>
-                  <span className="text-muted-foreground pt-0.5 leading-snug">{text}</span>
-                </li>
-              ))}
-            </ol>
+            <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 mt-1 text-center">
+              Tap &quot;+ Log Today&apos;s Impact&quot; to start
+            </p>
           </div>
         ) : (
           <>
